@@ -1,0 +1,229 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          String    // "ADMIN" | "STUDENT" | "TEACHER"
+  contactNumber String?   @map("contact_number")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  student       Student?
+  teacher       Teacher?
+
+  @@map("users")
+}
+
+model Subject {
+  id        String    @id @default(uuid())
+  name      String    @unique
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  students  StudentsOnSubjects[]
+  teachers  TeachersOnSubjects[]
+  exams     Exam[]
+
+  @@map("subjects")
+}
+
+model Student {
+  id              String    @id @default(uuid())
+  userId          String    @unique @map("user_id")
+  joiningDate     DateTime  @default(now()) @map("joining_date")
+  completedExams  Int       @default(0) @map("completed_exams")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user            User      @relation(fields: [userId], references: [id])
+  subjects        StudentsOnSubjects[]
+  studentExams    StudentExam[]
+  bannedFromExams Exam[]    @relation("BannedStudents")
+
+  @@map("students")
+}
+
+model Teacher {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  experience  Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user        User      @relation(fields: [userId], references: [id])
+  subjects    TeachersOnSubjects[]
+  exams      Exam[]
+
+  @@map("teachers")
+}
+
+model StudentsOnSubjects {
+  studentId   String   @map("student_id")
+  subjectId   String   @map("subject_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  
+  student     Student  @relation(fields: [studentId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+
+  @@id([studentId, subjectId])
+  @@map("students_subjects")
+}
+
+model TeachersOnSubjects {
+  teacherId   String   @map("teacher_id")
+  subjectId   String   @map("subject_id")
+  assignedAt  DateTime @default(now()) @map("assigned_at")
+  
+  teacher     Teacher  @relation(fields: [teacherId], references: [id])
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+
+  @@id([teacherId, subjectId])
+  @@map("teachers_subjects")
+}
+
+model Exam {
+  id            String    @id @default(uuid())
+  name          String
+  ownerId       String    @map("owner_id")
+  subjectId     String    @map("subject_id")
+  numQuestions  Int       @map("num_questions")
+  passingMarks  Int       @map("passing_marks")
+  duration      Int       // in minutes
+  isActive      Boolean   @default(true) @map("is_active")
+  startDate     DateTime  @map("start_date")
+  endDate       DateTime  @map("end_date")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  owner         Teacher   @relation(fields: [ownerId], references: [id])
+  subject       Subject   @relation(fields: [subjectId], references: [id])
+  questions     Question[]
+  studentExams  StudentExam[]
+  bannedStudents Student[] @relation("BannedStudents")
+
+  @@map("exams")
+}
+
+model Question {
+  id              String    @id @default(uuid())
+  examId          String    @map("exam_id")
+  questionText    String    @map("question_text")
+  hasImage        Boolean   @default(false) @map("has_image")
+  images          String[]
+  marks           Float     @default(1) @map("marks")
+  negativeMarks   Float     @default(0) @map("negative_marks")
+  correctOptionId String    @map("correct_option_id")
+  
+  // Relations
+  exam            Exam      @relation(fields: [examId], references: [id])
+  options         Option[]
+  responses       Response[]
+
+  @@map("questions")
+}
+
+model Option {
+  id          String    @id @default(uuid())
+  questionId  String    @map("question_id")
+  optionText  String    @map("option_text")
+  
+  // Relations
+  question    Question  @relation(fields: [questionId], references: [id])
+  responses   Response[]
+
+  @@map("options")
+}
+
+model StudentExam {
+  id            String      @id @default(uuid())
+  studentId     String      @map("student_id")
+  examId        String      @map("exam_id")
+  status        String      @default("NOT_STARTED") // "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
+  startTime     DateTime?   @map("start_time")
+  endTime       DateTime?   @map("end_time")
+  submittedAt   DateTime?   @map("submitted_at")
+  autoSubmitted Boolean     @default(false) @map("auto_submitted")
+
+  // Relations
+  student       Student     @relation(fields: [studentId], references: [id])
+  exam          Exam        @relation(fields: [examId], references: [id])
+  result        Result?
+  answerSheet   AnswerSheet?
+  cheatingLogs  AntiCheatingLog[]
+
+  @@map("student_exams")
+}
+
+model Result {
+  id              String    @id @default(uuid())
+  studentExamId   String    @unique @map("student_exam_id")
+  marks           Int
+  timeTaken      Int       @map("time_taken") // in seconds
+  status         String    // "PASS" | "FAIL"
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  studentExam    StudentExam @relation(fields: [studentExamId], references: [id])
+
+  @@map("results")
+}
+
+model AnswerSheet {
+  id            String    @id @default(uuid())
+  studentExamId String    @unique @map("student_exam_id")
+  submittedAt   DateTime  @default(now()) @map("submitted_at")
+
+  // Relations
+  studentExam   StudentExam @relation(fields: [studentExamId], references: [id])
+  responses     Response[]
+
+  @@map("answer_sheets")
+}
+
+model Response {
+  id            String    @id @default(uuid())
+  answerSheetId String    @map("answer_sheet_id")
+  questionId    String    @map("question_id")
+  optionId      String    @map("option_id")
+
+  // Relations
+  answerSheet   AnswerSheet @relation(fields: [answerSheetId], references: [id])
+  question      Question    @relation(fields: [questionId], references: [id])
+  selectedOption Option     @relation(fields: [optionId], references: [id])
+
+  @@map("responses")
+}
+
+model AntiCheatingLog {
+  id            String           @id @default(uuid())
+  studentExamId String           @map("student_exam_id")
+  eventType     String           @map("event_type") // "TAB_SWITCH" | "FULLSCREEN_EXIT"
+  eventTime     DateTime         @default(now()) @map("event_time")
+
+  // Relations
+  studentExam   StudentExam      @relation(fields: [studentExamId], references: [id])
+
+  @@map("anti_cheating_logs")
+}
