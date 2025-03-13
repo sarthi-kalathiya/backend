@@ -3,16 +3,10 @@ import jwt from 'jsonwebtoken';
 import config from '../config';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
 import prisma from '../utils/prismaClient';
-import { UserRole } from '../constants/roles';
+import { UserRole } from '../constants/user';
+import { TokenPayload } from '../models/auth.model';
 
-// Extend Express Request type to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+// No need for global declaration as it's in src/types/express.d.ts
 
 export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -25,11 +19,15 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
     const token = authHeader.split(' ')[1];
 
     // Verify token
-    const decoded: any = jwt.verify(token, config.app.jwtSecret);
+    const decoded = jwt.verify(token, config.app.jwtSecret as jwt.Secret) as TokenPayload;
     
     // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.id },
+      include: {
+        student: true,
+        teacher: true
+      }
     });
 
     if (!user) {
@@ -51,13 +49,13 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
   }
 };
 
-export const authorize = (...roles: string[]) => {
+export const authorize = (...roles: UserRole[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
     if (!req.user) {
       return next(new UnauthorizedError());
     }
 
-    if (!roles.includes(req.user.role)) {
+    if (!roles.includes(req.user.role as UserRole)) {
       return next(new ForbiddenError('You do not have permission to perform this action'));
     }
 

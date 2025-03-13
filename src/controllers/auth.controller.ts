@@ -2,16 +2,17 @@ import { Request, Response, NextFunction } from 'express';
 import * as authService from '../services/auth.service';
 import { BadRequestError } from '../utils/errors';
 import { successResponse } from '../utils/response';
+import { AdminSignupDto, LoginDto, RefreshTokenDto } from '../models/auth.model';
 
 export const adminSignup = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, password } = req.body;
+    const adminData: AdminSignupDto = req.body;
 
-    if (!name || !email || !password) {
+    if (!adminData.name || !adminData.email || !adminData.password) {
       throw new BadRequestError('Please provide name, email and password');
     }
 
-    const result = await authService.adminSignup(name, email, password);
+    const result = await authService.adminSignup(adminData);
     return successResponse(res, result, 'Admin registered successfully', 201);
   } catch (error) {
     next(error);
@@ -20,13 +21,13 @@ export const adminSignup = async (req: Request, res: Response, next: NextFunctio
 
 export const adminSignin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const credentials: LoginDto = req.body;
 
-    if (!email || !password) {
+    if (!credentials.email || !credentials.password) {
       throw new BadRequestError('Please provide email and password');
     }
 
-    const result = await authService.signin(email, password);
+    const result = await authService.signin(credentials);
     return successResponse(res, result, 'Admin logged in successfully');
   } catch (error) {
     next(error);
@@ -35,13 +36,13 @@ export const adminSignin = async (req: Request, res: Response, next: NextFunctio
 
 export const userSignin = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { email, password } = req.body;
+    const credentials: LoginDto = req.body;
 
-    if (!email || !password) {
+    if (!credentials.email || !credentials.password) {
       throw new BadRequestError('Please provide email and password');
     }
 
-    const result = await authService.signin(email, password);
+    const result = await authService.signin(credentials);
     return successResponse(res, result, 'User logged in successfully');
   } catch (error) {
     next(error);
@@ -50,7 +51,7 @@ export const userSignin = async (req: Request, res: Response, next: NextFunction
 
 export const refreshToken = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { refreshToken } = req.body;
+    const { refreshToken } = req.body as RefreshTokenDto;
 
     if (!refreshToken) {
       throw new BadRequestError('Please provide refresh token');

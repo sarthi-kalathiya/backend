@@ -27,6 +27,7 @@ model User {
   // Relations
   student       Student?
   teacher       Teacher?
+  
 
   @@map("users")
 }

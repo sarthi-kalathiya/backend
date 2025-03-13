@@ -12,6 +12,12 @@ import examRoutes from './routes/exam.routes';
 
 const app = express();
 
+// Debug middleware to log all requests
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();
+});
+
 // Middleware
 app.use(express.json());
 app.use(cors({
@@ -25,10 +31,13 @@ app.get('/api/health', (req, res) => {
 });
 
 // Register routes
+console.log('Registering auth routes');
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/subjects', subjectRoutes);
-app.use('/api', examRoutes);
+// IMPORTANT: Exam routes should be registered with a more specific path 
+// to avoid conflicts with other API routes
+app.use('/api/teacher', examRoutes);
 
 // Error handling
 app.use(notFound);

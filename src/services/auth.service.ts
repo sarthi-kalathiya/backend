@@ -3,43 +3,47 @@ import bcrypt from 'bcryptjs';
 import config from '../config';
 import prisma from '../utils/prismaClient';
 import { UnauthorizedError, BadRequestError, NotFoundError } from '../utils/errors';
-import { UserRole } from '../constants/roles';
+import { UserRole } from '../constants/user';
+import { AdminSignupDto, LoginDto, TokenPayload, TokenResponse } from '../models/auth.model';
+import { UserResponseDto } from '../models/user.model';
 
-export const generateToken = (userId: string, role: string) => {
+export const generateToken = (userId: string, role: UserRole): string => {
   return jwt.sign(
-    { id: userId, role },
-    config.app.jwtSecret,
+    { id: userId, role } as TokenPayload,
+    config.app.jwtSecret as jwt.Secret,
     { expiresIn: config.app.jwtExpiresIn }
   );
 };
 
-export const generateRefreshToken = (userId: string, role: string) => {
+export const generateRefreshToken = (userId: string, role: UserRole): string => {
   return jwt.sign(
-    { id: userId, role },
-    config.app.jwtRefreshSecret,
+    { id: userId, role } as TokenPayload,
+    config.app.jwtRefreshSecret as jwt.Secret,
     { expiresIn: config.app.jwtRefreshExpiresIn }
   );
 };
 
-export const verifyRefreshToken = (token: string) => {
+export const verifyRefreshToken = (token: string): TokenPayload => {
   try {
-    const decoded: any = jwt.verify(token, config.app.jwtRefreshSecret);
+    const decoded = jwt.verify(token, config.app.jwtRefreshSecret as jwt.Secret) as TokenPayload;
     return decoded;
   } catch (error) {
     throw new UnauthorizedError('Invalid refresh token');
   }
 };
 
-export const hashPassword = async (password: string) => {
+export const hashPassword = async (password: string): Promise<string> => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 };
 
-export const comparePassword = async (password: string, hashedPassword: string) => {
+export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
 
-export const adminSignup = async (name: string, email: string, password: string) => {
+export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
+  const { name, email, password, contactNumber } = adminData;
+  
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
     where: { email }
@@ -58,27 +62,34 @@ export const adminSignup = async (name: string, email: string, password: string)
       name,
       email,
       password: hashedPassword,
-      role: UserRole.ADMIN
+      role: UserRole.ADMIN,
+      contactNumber
     }
   });
 
   // Generate tokens
-  const token = generateToken(user.id, user.role);
-  const refreshToken = generateRefreshToken(user.id, user.role);
+  const accessToken = generateToken(user.id, user.role as UserRole);
+  const refreshToken = generateRefreshToken(user.id, user.role as UserRole);
 
   return {
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role as UserRole,
+      contactNumber: user.contactNumber,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     },
-    token,
+    accessToken,
     refreshToken
   };
 };
 
-export const signin = async (email: string, password: string) => {
+export const signin = async (credentials: LoginDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
+  const { email, password } = credentials;
+  
   // Find user by email
   const user = await prisma.user.findUnique({
     where: { email }
@@ -100,22 +111,26 @@ export const signin = async (email: string, password: string) => {
   }
 
   // Generate tokens
-  const token = generateToken(user.id, user.role);
-  const refreshToken = generateRefreshToken(user.id, user.role);
+  const accessToken = generateToken(user.id, user.role as UserRole);
+  const refreshToken = generateRefreshToken(user.id, user.role as UserRole);
 
   return {
     user: {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role
+      role: user.role as UserRole,
+      contactNumber: user.contactNumber,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
     },
-    token,
+    accessToken,
     refreshToken
   };
 };
 
-export const refreshAuthToken = async (refreshToken: string) => {
+export const refreshAuthToken = async (refreshToken: string): Promise<TokenResponse> => {
   const decoded = verifyRefreshToken(refreshToken);
   
   // Verify user exists
@@ -128,11 +143,11 @@ export const refreshAuthToken = async (refreshToken: string) => {
   }
 
   // Generate new tokens
-  const newToken = generateToken(user.id, user.role);
-  const newRefreshToken = generateRefreshToken(user.id, user.role);
+  const accessToken = generateToken(user.id, user.role as UserRole);
+  const newRefreshToken = generateRefreshToken(user.id, user.role as UserRole);
 
   return {
-    token: newToken,
+    accessToken,
     refreshToken: newRefreshToken
   };
 }; 
