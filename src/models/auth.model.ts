@@ -9,7 +9,7 @@ export interface AdminSignupDto {
   name: string;
   email: string;
   password: string;
-  contactNumber?: string;
+  contactNumber: string;
 }
 
 export interface TokenPayload {

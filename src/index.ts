@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import config from './config';
 import prisma from './utils/prismaClient';
@@ -20,6 +20,19 @@ app.use((req, res, next) => {
 
 // Middleware
 app.use(express.json());
+
+// Custom error handler for JSON parsing errors
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err && (err as any).status === 400) {
+    return res.status(400).json({ 
+      status: 'error', 
+      message: 'Invalid JSON format in request body',
+      details: err.message
+    });
+  }
+  next(err);
+});
+
 app.use(cors({
   origin: config.cors.origin,
   credentials: true
@@ -30,13 +43,18 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Online Exam API is running' });
 });
 
-// Register routes
-console.log('Registering auth routes');
+// Register routes with clear logging
+console.log('Registering routes:');
+console.log(' - /api/auth: Authentication routes');
 app.use('/api/auth', authRoutes);
+
+console.log(' - /api/user: User profile and management routes');
 app.use('/api/user', userRoutes);
+
+console.log(' - /api/subjects: Subject management routes');
 app.use('/api/subjects', subjectRoutes);
-// IMPORTANT: Exam routes should be registered with a more specific path 
-// to avoid conflicts with other API routes
+
+console.log(' - /api/teacher: Teacher exam management routes');
 app.use('/api/teacher', examRoutes);
 
 // Error handling
@@ -50,6 +68,7 @@ async function main() {
     
     app.listen(config.app.port, () => {
       console.log(`Server is running on port ${config.app.port}`);
+      console.log(`API available at: http://localhost:${config.app.port}/api`);
     });
   } catch (error) {
     console.error('Unable to connect to the database:', error);

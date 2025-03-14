@@ -1,6 +1,8 @@
 import prisma from '../utils/prismaClient';
 import { BadRequestError, NotFoundError, ForbiddenError } from '../utils/errors';
 import { ExamStatus } from '../constants/exam';
+import { CreateQuestionDto, UpdateQuestionDto, StudentExam } from '../models/exam.model';
+import { PrismaClient } from '@prisma/client';
 
 // Teacher exam operations
 export const getTeacherExams = async (teacherId: string) => {
@@ -143,7 +145,7 @@ export const updateExam = async (examId: string, teacherId: string, examData: an
   }
 
   // Check if exam has already been taken by any student
-  if (exam.studentExams.some(se => se.status === ExamStatus.COMPLETED)) {
+  if (exam.studentExams.some((se: StudentExam) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError('Cannot update exam that has already been taken');
   }
 
@@ -227,7 +229,7 @@ export const getExamQuestions = async (examId: string, teacherId: string) => {
   return questions;
 };
 
-export const addQuestion = async (examId: string, teacherId: string, questionData: any) => {
+export const addQuestion = async (examId: string, teacherId: string, questionData: CreateQuestionDto) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
     where: { id: examId },
@@ -245,10 +247,10 @@ export const addQuestion = async (examId: string, teacherId: string, questionDat
     throw new ForbiddenError('You do not have permission to modify this exam');
   }
 
-  // Check if exam has already been taken by any student
-  if (exam.studentExams.some(se => se.status === ExamStatus.COMPLETED)) {
-    throw new BadRequestError('Cannot modify exam that has already been taken');
-  }
+  // // Check if exam has already been taken by any student
+  // if (exam.studentExams.some((se: StudentExam) => se.status === ExamStatus.COMPLETED)) {
+  //   throw new BadRequestError('Cannot modify exam that has already been taken');
+  // }
 
   // Check if we're exceeding the number of questions
   if (exam.questions.length >= exam.numQuestions) {
@@ -274,15 +276,20 @@ export const addQuestion = async (examId: string, teacherId: string, questionDat
     throw new BadRequestError('Please mark one option as correct');
   }
 
+  // Validate images if hasImage is true
+  if (hasImage === true && (!images || !Array.isArray(images) || images.length === 0)) {
+    throw new BadRequestError('Images array cannot be empty when hasImage is true');
+  }
+
   // Create question with options in a transaction
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: PrismaClient) => {
     // Create the question first
     const question = await tx.question.create({
       data: {
         examId,
         questionText,
         hasImage: !!hasImage,
-        images: images || [],
+        images: hasImage ? images : [],
         marks: Number(marks) || 1,
         negativeMarks: Number(negativeMarks) || 0,
         // Create a temporary correctOptionId until we create the options
@@ -320,7 +327,7 @@ export const updateQuestion = async (
   examId: string,
   questionId: string, 
   teacherId: string, 
-  questionData: any
+  questionData: UpdateQuestionDto
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
@@ -339,7 +346,7 @@ export const updateQuestion = async (
   }
 
   // Check if exam has already been taken by any student
-  if (exam.studentExams.some(se => se.status === ExamStatus.COMPLETED)) {
+  if (exam.studentExams.some((se: StudentExam) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError('Cannot modify exam that has already been taken');
   }
 
@@ -377,8 +384,13 @@ export const updateQuestion = async (
     throw new BadRequestError('Please mark one option as correct');
   }
 
+  // Validate images if hasImage is true
+  if (hasImage === true && (!images || !Array.isArray(images) || images.length === 0)) {
+    throw new BadRequestError('Images array cannot be empty when hasImage is true');
+  }
+
   // Update question with options in a transaction
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: PrismaClient) => {
     // Delete existing options
     await tx.option.deleteMany({
       where: { questionId }
@@ -403,7 +415,7 @@ export const updateQuestion = async (
       data: {
         questionText,
         hasImage: !!hasImage,
-        images: images || [],
+        images: hasImage ? images : [],
         marks: Number(marks) || 1,
         negativeMarks: Number(negativeMarks) || 0,
         correctOptionId: correctOption.id

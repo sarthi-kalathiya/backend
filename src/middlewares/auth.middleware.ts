@@ -6,65 +6,126 @@ import prisma from '../utils/prismaClient';
 import { UserRole } from '../constants/user';
 import { TokenPayload } from '../models/auth.model';
 
-// No need for global declaration as it's in src/types/express.d.ts
-
-export const authenticate = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    // Get token from header
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new UnauthorizedError('No authentication token provided');
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // Verify token
-    const decoded = jwt.verify(token, config.app.jwtSecret as jwt.Secret) as TokenPayload;
-    
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.id },
-      include: {
-        student: true,
-        teacher: true
-      }
-    });
-
-    if (!user) {
-      throw new UnauthorizedError('User not found');
-    }
-
-    if (!user.isActive) {
-      throw new UnauthorizedError('User is inactive');
-    }
-
-    // Attach user to request
-    req.user = user;
-    next();
-  } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
-      return next(new UnauthorizedError('Invalid token'));
-    }
-    next(error);
+/**
+ * Core authentication function that handles token verification and user retrieval
+ * All other auth middleware functions will use this
+ */
+const verifyAuthAndGetUser = async (
+  req: Request, 
+  options?: { 
+    requiredRole?: UserRole, 
+    checkProfileCompletion?: boolean 
   }
+) => {
+  // Extract and validate auth header
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    throw new UnauthorizedError('No authentication token provided');
+  }
+
+  const token = authHeader.split(' ')[1];
+  
+  // Verify JWT token
+  const decoded = (jwt.verify as any)(token, config.app.jwtSecret) as TokenPayload;
+  
+  // Find user in database with profile information
+  const user = await prisma.user.findUnique({
+    where: { id: decoded.id },
+    include: {
+      teacher: true,
+      student: true
+    }
+  });
+
+  // Check if user exists
+  if (!user) {
+    throw new UnauthorizedError('User not found');
+  }
+
+  // Check if user is active
+  if (!user.isActive) {
+    throw new UnauthorizedError('User is inactive');
+  }
+
+  // Check role if required
+  if (options?.requiredRole && user.role !== options.requiredRole) {
+    throw new ForbiddenError(`${options.requiredRole} role required`);
+  }
+
+  // Determine profile completion status
+  let profileCompleted = false;
+  
+  if (user.role === UserRole.ADMIN) {
+    // Admins always have completed profiles
+    profileCompleted = true;
+  } else if (options?.checkProfileCompletion) {
+    if (user.role === UserRole.STUDENT) {
+      profileCompleted = user.student !== null;
+    } else if (user.role === UserRole.TEACHER) {
+      profileCompleted = user.teacher !== null;
+    }
+  }
+
+  return { user, profileCompleted };
 };
 
-export const authorize = (...roles: UserRole[]) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.user) {
-      return next(new UnauthorizedError());
+/**
+ * Middleware factory that creates role-specific authentication middleware
+ */
+const createAuthMiddleware = (options?: { requiredRole?: UserRole, checkProfileCompletion?: boolean }) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { user, profileCompleted } = await verifyAuthAndGetUser(req, options);
+      
+      // Attach user and profile completion status to request
+      // console.log('user', user);
+      req.user = user;
+      req.profileCompleted = profileCompleted;
+      
+      next();
+    } catch (error) {
+      if (error instanceof jwt.JsonWebTokenError) {
+        return next(new UnauthorizedError('Invalid token'));
+      }
+      next(error);
     }
-
-    if (!roles.includes(req.user.role as UserRole)) {
-      return next(new ForbiddenError('You do not have permission to perform this action'));
-    }
-
-    next();
   };
 };
 
-export const authorizeAdmin = authorize(UserRole.ADMIN);
-export const authorizeTeacher = authorize(UserRole.TEACHER);
-export const authorizeStudent = authorize(UserRole.STUDENT);
-export const authorizeTeacherOrAdmin = authorize(UserRole.TEACHER, UserRole.ADMIN);
-export const authorizeStudentOrTeacher = authorize(UserRole.STUDENT, UserRole.TEACHER); 
+// ===== EXPORTED MIDDLEWARE FUNCTIONS =====
+
+// Middleware for admin authentication
+export const authenticateAdmin = createAuthMiddleware({ 
+  requiredRole: UserRole.ADMIN 
+});
+
+// Middleware for teacher authentication with profile completion check
+export const authenticateTeacher = createAuthMiddleware({ 
+  requiredRole: UserRole.TEACHER,
+  checkProfileCompletion: true
+});
+
+// Middleware for student authentication with profile completion check
+export const authenticateStudent = createAuthMiddleware({ 
+  requiredRole: UserRole.STUDENT,
+  checkProfileCompletion: true
+});
+
+// Middleware for basic authentication with profile completion check
+export const authenticate = createAuthMiddleware({
+  checkProfileCompletion: true
+});
+
+// Middleware to check if a profile is completed (for protected routes)
+export const requireProfileCompletion = (req: Request, res: Response, next: NextFunction) => {
+  if (!req.user) {
+    return next(new UnauthorizedError('Authentication required'));
+  }
+  
+  // Only check profile completion for students and teachers
+  if ((req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER) && req.profileCompleted === false) {
+    return next(new ForbiddenError('Profile setup required before accessing this resource'));
+  }
+  
+  next();
+}; 

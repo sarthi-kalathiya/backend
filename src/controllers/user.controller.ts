@@ -1,10 +1,14 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/user.service';
-import { BadRequestError } from '../utils/errors';
+import { BadRequestError, UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
+import { UserRole } from '../constants/user';
 
 export const getCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('User not authenticated');
+    }
     const user = await userService.getUserById(req.user.id);
     return successResponse(res, user, 'User profile retrieved successfully');
   } catch (error) {
@@ -14,6 +18,9 @@ export const getCurrentUser = async (req: Request, res: Response, next: NextFunc
 
 export const updateCurrentUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('User not authenticated');
+    }
     const { name, email, contactNumber } = req.body;
     const updatedUser = await userService.updateUser(req.user.id, { name, email, contactNumber });
     return successResponse(res, updatedUser, 'User profile updated successfully');
@@ -24,6 +31,9 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
 
 export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('User not authenticated');
+    }
     const result = await userService.completeUserProfile(req.user.id, req.body);
     return successResponse(res, result, 'Profile completed successfully');
   } catch (error) {
@@ -33,6 +43,9 @@ export const completeProfile = async (req: Request, res: Response, next: NextFun
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('User not authenticated');
+    }
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
@@ -122,6 +135,108 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
 
     const result = await userService.resetUserPassword(req.params.userId, newPassword);
     return successResponse(res, result, 'Password reset successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Profile status
+export const getProfileStatus = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user) {
+      throw new UnauthorizedError('User not authenticated');
+    }
+    
+    return successResponse(res, {
+      profileCompleted: req.profileCompleted,
+      role: req.user.role,
+      requiresAdditionalSetup: req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// For teacher profile creation
+export const createTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new UnauthorizedError('User not authenticated');
+    }
+    
+    // Verify user is a teacher
+    if (req.user.role !== UserRole.TEACHER) {
+      throw new ForbiddenError('Only teachers can create a teacher profile');
+    }
+    
+    const teacherProfileData = req.body;
+    const result = await userService.createTeacherProfile(req.user.id, teacherProfileData);
+    
+    return successResponse(res, result, 'Teacher profile created successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// For student profile creation
+export const createStudentProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new UnauthorizedError('User not authenticated');
+    }
+    
+    // Verify user is a student
+    if (req.user.role !== UserRole.STUDENT) {
+      throw new ForbiddenError('Only students can create a student profile');
+    }
+    
+    const studentProfileData = req.body;
+    const result = await userService.createStudentProfile(req.user.id, studentProfileData);
+    
+    return successResponse(res, result, 'Student profile created successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get user profile when profile is complete
+export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new UnauthorizedError('User not authenticated');
+    }
+    
+    const profile = await userService.getUserWithProfile(req.user.id);
+    return successResponse(res, profile);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update user profile when profile is complete
+export const updateUserProfile = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!req.user || !req.user.id) {
+      throw new UnauthorizedError('User not authenticated');
+    }
+    
+    const profileData = req.body;
+    const updatedProfile = await userService.updateUserProfile(req.user.id, profileData);
+    
+    return successResponse(res, updatedProfile, 'Profile updated successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete a user (admin only)
+export const deleteUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    
+    await userService.deleteUser(userId);
+    
+    return noContentResponse(res);
   } catch (error) {
     next(error);
   }

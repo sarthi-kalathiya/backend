@@ -44,6 +44,23 @@ export const comparePassword = async (password: string, hashedPassword: string):
 export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
   const { name, email, password, contactNumber } = adminData;
   
+  // Validate required fields
+  if (!name || !email || !password || !contactNumber) {
+    throw new BadRequestError('All fields are required: name, email, password, and contact number');
+  }
+
+  // Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new BadRequestError('Invalid email format');
+  }
+
+  // Validate contact number (assuming a simple format, adjust as needed)
+  const contactRegex = /^\+?[\d\s-]{10,}$/;
+  if (!contactRegex.test(contactNumber)) {
+    throw new BadRequestError('Invalid contact number format');
+  }
+
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
     where: { email }

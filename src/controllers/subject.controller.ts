@@ -89,4 +89,15 @@ export const assignSubjectsToUser = async (req: Request, res: Response, next: Ne
   } catch (error) {
     next(error);
   }
+};
+
+export const assignSubjectToUser = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId, subjectId } = req.params;
+
+    const subject = await subjectService.assignSubjectToUser(userId, subjectId);
+    return successResponse(res, subject, 'Subject assigned to user successfully');
+  } catch (error) {
+    next(error);
+  }
 }; 

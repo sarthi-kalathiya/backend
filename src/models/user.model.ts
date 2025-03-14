@@ -1,4 +1,4 @@
-import { UserRole } from '../constants/user';
+import { UserRole, UserStatus } from '../constants/user';
 
 export interface User {
   id: string;
@@ -20,6 +20,9 @@ export interface UserWithProfile extends User {
 export interface Student {
   id: string;
   userId: string;
+  rollNumber: string;
+  grade: string;
+  parentContactNumber: string;
   joiningDate: Date;
   completedExams: number;
   createdAt: Date;
@@ -49,6 +52,7 @@ export interface UpdateUserDto {
   contactNumber?: string;
 }
 
+// Base user response DTO
 export interface UserResponseDto {
   id: string;
   name: string;
@@ -58,6 +62,67 @@ export interface UserResponseDto {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Extended user response with profile data
+export interface UserWithProfileResponseDto extends UserResponseDto {
+  student?: StudentResponseDto | null;
+  teacher?: TeacherResponseDto | null;
+}
+
+// Teacher profile response
+export interface TeacherResponseDto {
+  id: string;
+  userId: string;
+  qualification: string;
+  expertise: string;
+  experience: number;
+  bio?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Student profile response
+export interface StudentResponseDto {
+  id: string;
+  userId: string;
+  rollNumber: string;
+  grade: string;
+  parentContactNumber: string;
+  joiningDate: Date;
+  completedExams: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// DTO for creating teacher profile
+export interface TeacherProfileDto {
+  qualification: string;
+  expertise: string;
+  experience: number;
+  bio: string;
+}
+
+// DTO for creating student profile
+export interface StudentProfileDto {
+  rollNumber: string;
+  grade: string;
+  parentContactNumber: string;
+}
+
+// DTO for updating student profile
+export interface UpdateStudentProfileDto {
+  rollNumber?: string;
+  grade?: string;
+  parentContactNumber?: string;
+}
+
+// DTO for updating user profile
+export interface UserProfileUpdateDto {
+  name?: string;
+  contactNumber?: string;
+  teacherProfile?: Partial<TeacherProfileDto>;
+  studentProfile?: Partial<StudentProfileDto>;
 }
 
 export interface CompleteProfileDto {

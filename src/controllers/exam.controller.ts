@@ -1,14 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import * as examService from '../services/exam.service';
-import { BadRequestError } from '../utils/errors';
+import { BadRequestError, UnauthorizedError } from '../utils/errors';
 import { successResponse, createdResponse } from '../utils/response';
+import { CreateQuestionDto, UpdateQuestionDto } from '../models/exam.model';
 
 // Teacher exam operations
 export const getTeacherExams = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const exams = await examService.getTeacherExams(teacherId);
@@ -20,9 +25,13 @@ export const getTeacherExams = async (req: Request, res: Response, next: NextFun
 
 export const getExamById = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const exam = await examService.getExamById(req.params.examId, teacherId);
@@ -32,11 +41,29 @@ export const getExamById = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+/**
+ * Create a new exam
+ * 
+ * Expected payload:
+ * {
+ *   "name": "Midterm Exam",
+ *   "subjectId": "subject-uuid",
+ *   "numQuestions": 50,
+ *   "passingMarks": 35,
+ *   "duration": 120,
+ *   "startDate": "2023-11-01T09:00:00Z",
+ *   "endDate": "2023-11-01T11:00:00Z"
+ * }
+ */
 export const createExam = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const {
@@ -70,11 +97,28 @@ export const createExam = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+/**
+ * Update an existing exam
+ * 
+ * Expected payload:
+ * {
+ *   "name": "Updated Exam Name",
+ *   "numQuestions": 40,
+ *   "passingMarks": 30,
+ *   "duration": 90,
+ *   "startDate": "2023-11-01T09:00:00Z",
+ *   "endDate": "2023-11-01T10:30:00Z"
+ * }
+ */
 export const updateExam = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const {
@@ -106,11 +150,23 @@ export const updateExam = async (req: Request, res: Response, next: NextFunction
   }
 };
 
+/**
+ * Update the active status of an exam
+ * 
+ * Expected payload:
+ * {
+ *   "isActive": true
+ * }
+ */
 export const updateExamStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const { isActive } = req.body;
@@ -128,9 +184,13 @@ export const updateExamStatus = async (req: Request, res: Response, next: NextFu
 // Question management
 export const getExamQuestions = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const questions = await examService.getExamQuestions(req.params.examId, teacherId);
@@ -140,11 +200,33 @@ export const getExamQuestions = async (req: Request, res: Response, next: NextFu
   }
 };
 
+/**
+ * Add a question to an exam
+ * 
+ * Expected payload:
+ * {
+ *   "questionText": "What is the capital of France?",
+ *   "hasImage": false,
+ *   "images": [],
+ *   "marks": 1,
+ *   "negativeMarks": 0,
+ *   "options": [
+ *     { "text": "Paris", "isCorrect": true },
+ *     { "text": "London", "isCorrect": false },
+ *     { "text": "Berlin", "isCorrect": false },
+ *     { "text": "Madrid", "isCorrect": false }
+ *   ]
+ * }
+ */
 export const addQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const { 
@@ -156,18 +238,40 @@ export const addQuestion = async (req: Request, res: Response, next: NextFunctio
       options 
     } = req.body;
 
-    if (!questionText || !options) {
-      throw new BadRequestError('Missing required fields');
+    // Validate required fields
+    if (!questionText) {
+      throw new BadRequestError('Question text is required');
     }
 
-    const question = await examService.addQuestion(req.params.examId, teacherId, {
+    // Validate options array
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      throw new BadRequestError('Please provide at least 2 options');
+    }
+
+    // Ensure one option is marked as correct
+    const hasCorrectOption = options.some(option => option.isCorrect === true);
+    if (!hasCorrectOption) {
+      throw new BadRequestError('Please mark one option as correct');
+    }
+
+    // Validate images if hasImage is true
+    if (hasImage === true) {
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        throw new BadRequestError('Images array cannot be empty when hasImage is true');
+      }
+    }
+
+    // Create the DTO
+    const questionDto: CreateQuestionDto = {
       questionText,
       hasImage,
-      images,
-      marks,
-      negativeMarks,
+      images: hasImage ? images : [],
+      marks: marks ? Number(marks) : undefined,
+      negativeMarks: negativeMarks ? Number(negativeMarks) : undefined,
       options
-    });
+    };
+
+    const question = await examService.addQuestion(req.params.examId, teacherId, questionDto);
 
     return createdResponse(res, question, 'Question added successfully');
   } catch (error) {
@@ -175,11 +279,33 @@ export const addQuestion = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
+/**
+ * Update a question in an exam
+ * 
+ * Expected payload:
+ * {
+ *   "questionText": "What is the capital of France?",
+ *   "hasImage": false,
+ *   "images": [],
+ *   "marks": 1,
+ *   "negativeMarks": 0,
+ *   "options": [
+ *     { "text": "Paris", "isCorrect": true },
+ *     { "text": "London", "isCorrect": false },
+ *     { "text": "Berlin", "isCorrect": false },
+ *     { "text": "Madrid", "isCorrect": false }
+ *   ]
+ * }
+ */
 export const updateQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     const { 
@@ -191,22 +317,46 @@ export const updateQuestion = async (req: Request, res: Response, next: NextFunc
       options 
     } = req.body;
 
-    if (!questionText || !options) {
-      throw new BadRequestError('Missing required fields');
+    // Validate required fields
+    if (!questionText) {
+      throw new BadRequestError('Question text is required');
     }
+
+    // Validate options array
+    if (!options || !Array.isArray(options) || options.length < 2) {
+      throw new BadRequestError('Please provide at least 2 options');
+    }
+
+    // Ensure one option is marked as correct
+    const hasCorrectOption = options.some(option => option.isCorrect === true);
+    if (!hasCorrectOption) {
+      throw new BadRequestError('Please mark one option as correct');
+    }
+
+    // Validate images if hasImage is true
+    if (hasImage === true) {
+      if (!images || !Array.isArray(images) || images.length === 0) {
+        throw new BadRequestError('Images array cannot be empty when hasImage is true');
+      }
+    }
+
+    // Create the DTO
+    const questionDto: UpdateQuestionDto = {
+      questionText,
+      hasImage,
+      images: hasImage ? images : [],
+      marks: marks ? Number(marks) : undefined,
+      negativeMarks: negativeMarks ? Number(negativeMarks) : undefined,
+      options
+    };
+
+    
 
     const question = await examService.updateQuestion(
       req.params.examId,
       req.params.questionId,
       teacherId,
-      {
-        questionText,
-        hasImage,
-        images,
-        marks,
-        negativeMarks,
-        options
-      }
+      questionDto
     );
 
     return successResponse(res, question, 'Question updated successfully');
@@ -217,9 +367,13 @@ export const updateQuestion = async (req: Request, res: Response, next: NextFunc
 
 export const deactivateQuestion = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    if (!req.user) {
+      throw new UnauthorizedError('Authentication required');
+    }
+
     const teacherId = req.user.teacher?.id;
     if (!teacherId) {
-      throw new BadRequestError('Teacher profile not found');
+      throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
     await examService.deactivateQuestion(req.params.examId, req.params.questionId, teacherId);
