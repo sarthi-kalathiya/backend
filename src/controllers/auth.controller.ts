@@ -8,8 +8,8 @@ export const adminSignup = async (req: Request, res: Response, next: NextFunctio
   try {
     const adminData: AdminSignupDto = req.body;
 
-    if (!adminData.name || !adminData.email || !adminData.password) {
-      throw new BadRequestError('Please provide name, email and password');
+    if (!adminData.firstName || !adminData.lastName || !adminData.email || !adminData.password) {
+      throw new BadRequestError('Please provide firstName, lastName, email and password');
     }
 
     const result = await authService.adminSignup(adminData);

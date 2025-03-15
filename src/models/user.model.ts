@@ -2,7 +2,8 @@ import { UserRole, UserStatus } from '../constants/user';
 
 export interface User {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: UserRole;
@@ -39,7 +40,8 @@ export interface Teacher {
 
 // DTOs for user operations
 export interface CreateUserDto {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role: UserRole;
@@ -47,7 +49,8 @@ export interface CreateUserDto {
 }
 
 export interface UpdateUserDto {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   email?: string;
   contactNumber?: string;
 }
@@ -55,7 +58,8 @@ export interface UpdateUserDto {
 // Base user response DTO
 export interface UserResponseDto {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   role: UserRole;
   contactNumber?: string;
@@ -119,7 +123,8 @@ export interface UpdateStudentProfileDto {
 
 // DTO for updating user profile
 export interface UserProfileUpdateDto {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   contactNumber?: string;
   teacherProfile?: Partial<TeacherProfileDto>;
   studentProfile?: Partial<StudentProfileDto>;

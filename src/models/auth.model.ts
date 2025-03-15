@@ -6,7 +6,8 @@ export interface LoginDto {
 }
 
 export interface AdminSignupDto {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   contactNumber: string;

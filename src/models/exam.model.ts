@@ -7,6 +7,7 @@ export interface Exam {
   subjectId: string;
   numQuestions: number;
   passingMarks: number;
+  totalMarks: number;
   duration: number;
   isActive: boolean;
   startDate: Date;
@@ -78,6 +79,7 @@ export interface CreateExamDto {
   subjectId: string;
   numQuestions: number;
   passingMarks: number;
+  totalMarks: number;
   duration: number;
   startDate: string | Date;
   endDate: string | Date;
@@ -87,6 +89,7 @@ export interface UpdateExamDto {
   name: string;
   numQuestions: number;
   passingMarks: number;
+  totalMarks: number;
   duration: number;
   startDate: string | Date;
   endDate: string | Date;

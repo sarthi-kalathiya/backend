@@ -15,7 +15,8 @@ datasource db {
 
 model User {
   id            String    @id @default(uuid())
-  name          String
+  firstName     String    @map("first_name")
+  lastName      String    @map("last_name")
   email         String    @unique
   password      String
   role          String    // "ADMIN" | "STUDENT" | "TEACHER"
@@ -35,6 +36,8 @@ model User {
 model Subject {
   id        String    @id @default(uuid())
   name      String    @unique
+  code      String    @unique @map("code")
+  description String   @default("") @map("description")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -110,18 +113,21 @@ model TeachersOnSubjects {
 }
 
 model Exam {
-  id            String    @id @default(uuid())
-  name          String
-  ownerId       String    @map("owner_id")
-  subjectId     String    @map("subject_id")
-  numQuestions  Int       @map("num_questions")
-  passingMarks  Int       @map("passing_marks")
-  duration      Int       // in minutes
-  isActive      Boolean   @default(true) @map("is_active")
-  startDate     DateTime  @map("start_date")
-  endDate       DateTime  @map("end_date")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @updatedAt @map("updated_at")
+  id                  String    @id @default(uuid())
+  name                String
+  ownerId             String    @map("owner_id")
+  subjectId           String    @map("subject_id")
+  numQuestions        Int       @map("num_questions")
+  passingMarks        Int       @map("passing_marks")
+  totalMarks          Int       @map("total_marks")
+  currentQuestionCount Int      @default(0) @map("current_question_count")
+  currentTotalMarks   Float     @default(0) @map("current_total_marks")
+  duration            Int       // in minutes
+  isActive            Boolean   @default(true) @map("is_active")
+  startDate           DateTime  @map("start_date")
+  endDate             DateTime  @map("end_date")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
 
   // Relations
   owner         Teacher   @relation(fields: [ownerId], references: [id])

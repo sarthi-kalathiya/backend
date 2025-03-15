@@ -9,6 +9,8 @@ import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import subjectRoutes from './routes/subject.routes';
 import examRoutes from './routes/exam.routes';
+import teacherExamRoutes from './routes/teacherExam.routes';
+import studentExamRoutes from './routes/studentExam.routes';
 
 const app = express();
 
@@ -56,6 +58,12 @@ app.use('/api/subjects', subjectRoutes);
 
 console.log(' - /api/teacher: Teacher exam management routes');
 app.use('/api/teacher', examRoutes);
+
+console.log(' - /api/teacher/exams: Teacher exam assignment and monitoring routes');
+app.use('/api/teacher', teacherExamRoutes);
+
+console.log(' - /api/student: Student exam routes');
+app.use('/api/student', studentExamRoutes);
 
 // Error handling
 app.use(notFound);

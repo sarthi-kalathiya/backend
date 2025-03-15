@@ -6,7 +6,7 @@ import * as authService from './auth.service';
 import { TeacherProfileDto, StudentProfileDto, UserProfileUpdateDto, CreateUserDto } from '../models/user.model';
 
 export const getAllUsers = async (filters: any = {}) => {
-  const { role, isActive, searchTerm } = filters;
+  const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
 
   const whereCondition: any = {};
 
@@ -20,16 +20,32 @@ export const getAllUsers = async (filters: any = {}) => {
 
   if (searchTerm) {
     whereCondition.OR = [
-      { name: { contains: searchTerm, mode: 'insensitive' } },
+      { firstName: { contains: searchTerm, mode: 'insensitive' } },
+      { lastName: { contains: searchTerm, mode: 'insensitive' } },
       { email: { contains: searchTerm, mode: 'insensitive' } }
     ];
   }
 
+  // Convert page and pageSize to numbers and validate
+  const pageNum = parseInt(page as string, 10);
+  const pageSizeNum = parseInt(pageSize as string, 10);
+  
+  // Calculate pagination values
+  const skip = (pageNum - 1) * pageSizeNum;
+  const take = pageSizeNum;
+
+  // Get total count for pagination info
+  const totalCount = await prisma.user.count({
+    where: whereCondition
+  });
+
+  // Get paginated users
   const users = await prisma.user.findMany({
     where: whereCondition,
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       contactNumber: true,
@@ -37,18 +53,31 @@ export const getAllUsers = async (filters: any = {}) => {
       createdAt: true,
       updatedAt: true
     },
-    orderBy: { createdAt: 'desc' }
+    orderBy: { createdAt: 'desc' },
+    skip,
+    take
   });
 
-  return users;
+  // Return both users and pagination info
+  return {
+    users,
+    pagination: {
+      total: totalCount,
+      page: pageNum,
+      pageSize: pageSizeNum,
+      totalPages: Math.ceil(totalCount / pageSizeNum)
+    }
+  };
 };
 
 export const getUserById = async (userId: string) => {
+  // First get the user with basic profile info
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       contactNumber: true,
@@ -87,15 +116,49 @@ export const getUserById = async (userId: string) => {
     throw new NotFoundError('User not found');
   }
 
-  return user;
+  // Now get the user's subjects
+  let subjects = [];
+  
+  try {
+    // If the user is a student or teacher, get their subjects
+    if (user.student || user.teacher) {
+      // Get subjects from the database based on the user's role
+      if (user.student) {
+        const studentSubjects = await prisma.studentsOnSubjects.findMany({
+          where: { studentId: user.student.id },
+          include: {
+            subject: true
+          }
+        });
+        subjects = studentSubjects.map(item => item.subject);
+      } else if (user.teacher) {
+        const teacherSubjects = await prisma.teachersOnSubjects.findMany({
+          where: { teacherId: user.teacher.id },
+          include: {
+            subject: true
+          }
+        });
+        subjects = teacherSubjects.map(item => item.subject);
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching user subjects:', error);
+    // Continue with subjects as empty array
+  }
+
+  // Return user with subjects
+  return {
+    ...user,
+    subjects
+  };
 };
 
 export const createUser = async (userData: CreateUserDto) => {
-  const { name, email, password, role, contactNumber } = userData;
+  const { firstName, lastName, email, password, role, contactNumber } = userData;
 
   // Validate required fields
-  if (!name || !email || !password || !role || !contactNumber) {
-    throw new BadRequestError('All fields are required: name, email, password, role, and contact number');
+  if (!firstName || !lastName || !email || !password || !role || !contactNumber) {
+    throw new BadRequestError('All fields are required: firstName, lastName, email, password, role, and contact number');
   }
 
   // Validate email format
@@ -133,7 +196,8 @@ export const createUser = async (userData: CreateUserDto) => {
     // Create user
     const user = await prismaClient.user.create({
       data: {
-        name,
+        firstName,
+        lastName,
         email,
         password: hashedPassword,
         role,
@@ -146,7 +210,8 @@ export const createUser = async (userData: CreateUserDto) => {
 
   return {
     id: result.id,
-    name: result.name,
+    firstName: result.firstName,
+    lastName: result.lastName,
     email: result.email,
     role: result.role,
     contactNumber: result.contactNumber,
@@ -157,7 +222,7 @@ export const createUser = async (userData: CreateUserDto) => {
 };
 
 export const updateUser = async (userId: string, userData: any) => {
-  const { name, email, contactNumber } = userData;
+  const { firstName, lastName, email, contactNumber } = userData;
 
   // Check if user exists
   const user = await prisma.user.findUnique({
@@ -183,13 +248,15 @@ export const updateUser = async (userId: string, userData: any) => {
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
-      name,
+      firstName,
+      lastName,
       email,
       contactNumber
     },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       contactNumber: true,
@@ -205,7 +272,11 @@ export const updateUser = async (userId: string, userData: any) => {
 export const updateUserStatus = async (userId: string, isActive: boolean) => {
   // Check if user exists
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
+    include: {
+      student: true, 
+      teacher: true
+    }
   });
 
   if (!user) {
@@ -218,10 +289,16 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
     data: { isActive },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
-      isActive: true
+      contactNumber: true,
+      isActive: true,
+      student: true,
+      teacher: true,
+      createdAt: true,
+      updatedAt: true
     }
   });
 
@@ -495,7 +572,8 @@ export const getUserWithProfile = async (userId: string) => {
     where: { id: userId },
     select: {
       id: true,
-      name: true,
+      firstName: true,
+      lastName: true,
       email: true,
       role: true,
       contactNumber: true,
@@ -555,7 +633,8 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: {
-      name: profileData.name,
+      firstName: profileData.firstName,
+      lastName: profileData.lastName,
       contactNumber: profileData.contactNumber
     }
   });

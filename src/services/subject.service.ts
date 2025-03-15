@@ -28,9 +28,9 @@ export const getSubjectById = async (subjectId: string) => {
   return subject;
 };
 
-export const createSubject = async (name: string) => {
+export const createSubject = async (name: string, code: string, description: string = '') => {
   // Check if subject name already exists
-  const existingSubject = await prisma.subject.findFirst({
+  const existingSubjectWithName = await prisma.subject.findFirst({
     where: {
       name: {
         equals: name,
@@ -39,18 +39,36 @@ export const createSubject = async (name: string) => {
     }
   });
 
-  if (existingSubject) {
+  if (existingSubjectWithName) {
     throw new BadRequestError('Subject with this name already exists');
   }
 
+  // Check if subject code already exists
+  const existingSubjectWithCode = await prisma.subject.findFirst({
+    where: {
+      code: {
+        equals: code,
+        mode: 'insensitive'
+      }
+    }
+  });
+
+  if (existingSubjectWithCode) {
+    throw new BadRequestError('Subject with this code already exists');
+  }
+
   const subject = await prisma.subject.create({
-    data: { name }
+    data: { 
+      name,
+      code,
+      description 
+    }
   });
 
   return subject;
 };
 
-export const updateSubject = async (subjectId: string, name: string) => {
+export const updateSubject = async (subjectId: string, name: string, code: string, description?: string) => {
   // Check if subject exists
   const subject = await prisma.subject.findUnique({
     where: { id: subjectId }
@@ -77,9 +95,31 @@ export const updateSubject = async (subjectId: string, name: string) => {
     }
   }
 
+  // Check if the new code conflicts with another subject
+  if (code !== subject.code) {
+    const existingSubjectWithCode = await prisma.subject.findFirst({
+      where: {
+        code: {
+          equals: code,
+          mode: 'insensitive'
+        },
+        id: { not: subjectId }
+      }
+    });
+
+    if (existingSubjectWithCode) {
+      throw new BadRequestError('Subject with this code already exists');
+    }
+  }
+
+  const updateData: any = { name, code };
+  if (description !== undefined) {
+    updateData.description = description;
+  }
+
   const updatedSubject = await prisma.subject.update({
     where: { id: subjectId },
-    data: { name }
+    data: updateData
   });
 
   return updatedSubject;
@@ -253,6 +293,7 @@ interface SubjectWithRelations {
   subject: {
     id: string;
     name: string;
+    description?: string;
     isActive: boolean;
     createdAt: Date;
     updatedAt: Date;

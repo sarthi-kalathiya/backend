@@ -42,11 +42,11 @@ export const comparePassword = async (password: string, hashedPassword: string):
 };
 
 export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
-  const { name, email, password, contactNumber } = adminData;
+  const { firstName, lastName, email, password, contactNumber } = adminData;
   
   // Validate required fields
-  if (!name || !email || !password || !contactNumber) {
-    throw new BadRequestError('All fields are required: name, email, password, and contact number');
+  if (!firstName || !lastName || !email || !password || !contactNumber) {
+    throw new BadRequestError('All fields are required: firstName, lastName, email, password, and contact number');
   }
 
   // Validate email format
@@ -76,7 +76,8 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
   // Create admin user
   const user = await prisma.user.create({
     data: {
-      name,
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
       role: UserRole.ADMIN,
@@ -91,7 +92,8 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
   return {
     user: {
       id: user.id,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       role: user.role as UserRole,
       contactNumber: user.contactNumber,

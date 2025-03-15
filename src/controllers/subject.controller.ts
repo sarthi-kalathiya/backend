@@ -24,13 +24,23 @@ export const getSubjectById = async (req: Request, res: Response, next: NextFunc
 
 export const createSubject = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name } = req.body;
+    const { name, code, description } = req.body;
 
     if (!name) {
       throw new BadRequestError('Please provide subject name');
     }
 
-    const subject = await subjectService.createSubject(name);
+    if (!code) {
+      throw new BadRequestError('Please provide subject code');
+    }
+
+    // Validate code format (alphanumeric with optional hyphens)
+    const codeRegex = /^[A-Za-z0-9-]+$/;
+    if (!codeRegex.test(code)) {
+      throw new BadRequestError('Subject code must contain only letters, numbers, and hyphens');
+    }
+
+    const subject = await subjectService.createSubject(name, code, description);
     return createdResponse(res, subject, 'Subject created successfully');
   } catch (error) {
     next(error);
@@ -39,13 +49,23 @@ export const createSubject = async (req: Request, res: Response, next: NextFunct
 
 export const updateSubject = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name } = req.body;
+    const { name, code, description } = req.body;
 
     if (!name) {
       throw new BadRequestError('Please provide subject name');
     }
 
-    const subject = await subjectService.updateSubject(req.params.subjectId, name);
+    if (!code) {
+      throw new BadRequestError('Please provide subject code');
+    }
+
+    // Validate code format (alphanumeric with optional hyphens)
+    const codeRegex = /^[A-Za-z0-9-]+$/;
+    if (!codeRegex.test(code)) {
+      throw new BadRequestError('Subject code must contain only letters, numbers, and hyphens');
+    }
+
+    const subject = await subjectService.updateSubject(req.params.subjectId, name, code, description);
     return successResponse(res, subject, 'Subject updated successfully');
   } catch (error) {
     next(error);

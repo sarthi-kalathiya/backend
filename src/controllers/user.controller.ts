@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import * as userService from '../services/user.service';
+import * as subjectService from '../services/subject.service';
 import { BadRequestError, UnauthorizedError, ForbiddenError } from '../utils/errors';
 import { successResponse, createdResponse, noContentResponse } from '../utils/response';
 import { UserRole } from '../constants/user';
@@ -21,8 +22,8 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
     if (!req.user) {
       throw new UnauthorizedError('User not authenticated');
     }
-    const { name, email, contactNumber } = req.body;
-    const updatedUser = await userService.updateUser(req.user.id, { name, email, contactNumber });
+    const { firstName, lastName, email, contactNumber } = req.body;
+    const updatedUser = await userService.updateUser(req.user.id, { firstName, lastName, email, contactNumber });
     return successResponse(res, updatedUser, 'User profile updated successfully');
   } catch (error) {
     next(error);
@@ -62,8 +63,13 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
 // Admin endpoints for user management
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const users = await userService.getAllUsers(req.query);
-    return successResponse(res, users, 'Users retrieved successfully');
+    // Get paginated users with pagination info
+    const result = await userService.getAllUsers(req.query);
+    
+    // Return with pagination metadata
+    return successResponse(res, result.users, 'Users retrieved successfully', {
+      pagination: result.pagination
+    });
   } catch (error) {
     next(error);
   }
@@ -72,7 +78,18 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
 export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await userService.getUserById(req.params.userId);
-    return successResponse(res, user, 'User retrieved successfully');
+    
+    // Get the user's subjects
+    let subjects: any[] = [];
+    try {
+      subjects = await subjectService.getUserSubjects(req.params.userId);
+    } catch (error) {
+      console.error('Error fetching user subjects:', error);
+      // Proceed with empty subjects array
+    }
+    
+    // Return the user with subjects
+    return successResponse(res, { ...user, subjects }, 'User retrieved successfully');
   } catch (error) {
     next(error);
   }
@@ -80,14 +97,15 @@ export const getUserById = async (req: Request, res: Response, next: NextFunctio
 
 export const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, password, role, contactNumber } = req.body;
+    const { firstName, lastName, email, password, role, contactNumber } = req.body;
 
-    if (!name || !email || !password || !role) {
-      throw new BadRequestError('Please provide name, email, password, and role');
+    if (!firstName || !lastName || !email || !password || !role) {
+      throw new BadRequestError('Please provide firstName, lastName, email, password, and role');
     }
 
     const newUser = await userService.createUser({
-      name,
+      firstName,
+      lastName,
       email,
       password,
       role,
@@ -102,8 +120,8 @@ export const createUser = async (req: Request, res: Response, next: NextFunction
 
 export const updateUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, email, contactNumber } = req.body;
-    const updatedUser = await userService.updateUser(req.params.userId, { name, email, contactNumber });
+    const { firstName, lastName, email, contactNumber } = req.body;
+    const updatedUser = await userService.updateUser(req.params.userId, { firstName, lastName, email, contactNumber });
     return successResponse(res, updatedUser, 'User updated successfully');
   } catch (error) {
     next(error);
@@ -119,7 +137,20 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
     }
 
     const updatedUser = await userService.updateUserStatus(req.params.userId, isActive);
-    return successResponse(res, updatedUser, `User ${isActive ? 'activated' : 'deactivated'} successfully`);
+    
+    // Create a more descriptive message based on the user role
+    let userType = "User";
+    if (updatedUser.role === "TEACHER") {
+      userType = "Teacher";
+    } else if (updatedUser.role === "STUDENT") {
+      userType = "Student";
+    }
+    
+    return successResponse(
+      res, 
+      updatedUser, 
+      `${userType} with email ${updatedUser.email} has been ${isActive ? 'activated' : 'deactivated'} successfully`
+    );
   } catch (error) {
     next(error);
   }
@@ -133,8 +164,21 @@ export const resetPassword = async (req: Request, res: Response, next: NextFunct
       throw new BadRequestError('Please provide new password');
     }
 
+    // Get user info first to include in the message
+    const user = await userService.getUserById(req.params.userId);
+    
+    // Reset the password
     const result = await userService.resetUserPassword(req.params.userId, newPassword);
-    return successResponse(res, result, 'Password reset successfully');
+    
+    // Create a more descriptive message based on the user role
+    let userType = "User";
+    if (user.role === "TEACHER") {
+      userType = "Teacher";
+    } else if (user.role === "STUDENT") {
+      userType = "Student";
+    }
+    
+    return successResponse(res, result, `Password for ${userType} with email ${user.email} has been reset successfully`);
   } catch (error) {
     next(error);
   }
