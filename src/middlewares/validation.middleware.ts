@@ -221,7 +221,18 @@ export const validators = {
         }
       }
       return true;
+    },
+    
+  // Custom validator for subject code pattern (ABC-123)
+  subjectCodePattern: (value: any, fieldName: string): true | string => {
+    if (value && typeof value === 'string') {
+      const codeRegex = /^[A-Z]{3}-\d{3}$/;
+      if (!codeRegex.test(value)) {
+        return `${fieldName} must follow the pattern: ABC-123 (3 uppercase letters, hyphen, 3 digits)`;
+      }
     }
+    return true;
+  }
 };
 
 // Validation middleware for specific endpoints

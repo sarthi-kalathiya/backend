@@ -12,7 +12,8 @@ export const createSubjectSchema = {
     validators.required,
     validators.string,
     validators.minLength(2),
-    validators.maxLength(20)
+    validators.maxLength(20),
+    validators.subjectCodePattern
   ),
   description: validators.compose(
     validators.string,
@@ -35,7 +36,8 @@ export const updateSubjectSchema = {
   code: validators.compose(
     validators.string,
     validators.minLength(2),
-    validators.maxLength(20)
+    validators.maxLength(20),
+    validators.subjectCodePattern
   ),
   description: validators.compose(
     validators.string,
