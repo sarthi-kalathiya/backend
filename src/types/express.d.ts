@@ -7,7 +7,6 @@ declare global {
         student?: Student;
         teacher?: Teacher;
       };
-      profileCompleted?: boolean;
     }
   }
 } 

@@ -3,7 +3,7 @@ import prisma from '../utils/prismaClient';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 import { UserRole } from '../constants/user';
 import * as authService from './auth.service';
-import { TeacherProfileDto, StudentProfileDto, UserProfileUpdateDto, CreateUserDto } from '../models/user.model';
+import { TeacherProfileDto, StudentProfileDto, UserProfileUpdateDto, CreateUserDto, ProfileCompletionDto } from '../models/user.model';
 
 export const getAllUsers = async (filters: any = {}) => {
   const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
@@ -82,6 +82,7 @@ export const getUserById = async (userId: string) => {
       role: true,
       contactNumber: true,
       isActive: true,
+      profileCompleted: true,
       createdAt: true,
       updatedAt: true,
       student: {
@@ -117,7 +118,7 @@ export const getUserById = async (userId: string) => {
   }
 
   // Now get the user's subjects
-  let subjects = [];
+  let subjects: any[] = [];
   
   try {
     // If the user is a student or teacher, get their subjects
@@ -192,8 +193,8 @@ export const createUser = async (userData: CreateUserDto) => {
   const hashedPassword = await authService.hashPassword(password);
 
   // Create user transaction
-  const result = await prisma.$transaction(async (prismaClient: PrismaClient) => {
-    // Create user
+  const result = await prisma.$transaction(async (prismaClient) => {
+    // Create user with profileCompleted field
     const user = await prismaClient.user.create({
       data: {
         firstName,
@@ -201,13 +202,37 @@ export const createUser = async (userData: CreateUserDto) => {
         email,
         password: hashedPassword,
         role,
-        contactNumber
+        contactNumber,
+        profileCompleted: role === UserRole.ADMIN // Only admin profiles are complete by default
       }
     });
+
+    // If user is a teacher or student, create a temporary profile
+    if (role === UserRole.TEACHER) {
+      await prismaClient.teacher.create({
+        data: {
+          userId: user.id,
+          experience: 0,
+          qualification: "", // Empty string for temporary profile
+          expertise: "",    // Empty string for temporary profile
+          bio: ""          // Empty string for temporary profile
+        }
+      });
+    } else if (role === UserRole.STUDENT) {
+      await prismaClient.student.create({
+        data: {
+          userId: user.id,
+          rollNumber: "",  // Empty string for temporary profile
+          grade: "",      // Empty string for temporary profile
+          parentContactNumber: "" // Empty string for temporary profile
+        }
+      });
+    }
 
     return user;
   });
 
+  // Return user without password
   return {
     id: result.id,
     firstName: result.firstName,
@@ -216,6 +241,7 @@ export const createUser = async (userData: CreateUserDto) => {
     role: result.role,
     contactNumber: result.contactNumber,
     isActive: result.isActive,
+    profileCompleted: result.profileCompleted,
     createdAt: result.createdAt,
     updatedAt: result.updatedAt
   };
@@ -327,78 +353,155 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
   return { message: 'Password reset successfully' };
 };
 
-export const completeUserProfile = async (userId: string, profileData: any) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: {
-      student: true,
-      teacher: true
-    }
-  });
+// export const completeUserProfile = async (userId: string, profileData: ProfileCompletionDto) => {
+//   const user = await prisma.user.findUnique({
+//     where: { id: userId },
+//     include: {
+//       student: true,
+//       teacher: true
+//     }
+//   });
 
-  if (!user) {
-    throw new NotFoundError('User not found');
-  }
+//   if (!user) {
+//     throw new NotFoundError('User not found');
+//   }
 
-  if (user.role === UserRole.STUDENT) {
-    if (!user.student) {
-      throw new BadRequestError('Student profile not found');
-    }
+//   // Common validation
+//   // const { contactNumber } = profileData;
+//   // if (!contactNumber) {
+//   //   throw new BadRequestError('Contact number is required');
+//   // }
 
-    const { contactNumber } = profileData;
+//   // const contactRegex = /^\+?[\d\s-]{10,}$/;
+//   // if (!contactRegex.test(contactNumber)) {
+//   //   throw new BadRequestError('Invalid contact number format');
+//   // }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: userId },
-      data: { contactNumber },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        contactNumber: true,
-        student: true
-      }
-    });
+//   if (user.role === UserRole.STUDENT) {
+//     if (!user.student) {
+//       throw new BadRequestError('Student profile not found');
+//     }
 
-    return updatedUser;
-  } else if (user.role === UserRole.TEACHER) {
-    if (!user.teacher) {
-      throw new BadRequestError('Teacher profile not found');
-    }
+//     const { rollNumber, grade, parentContactNumber } = profileData;
+    
+//     // Validate student-specific fields
+//     if (!rollNumber || !grade || !parentContactNumber) {
+//       throw new BadRequestError('All fields are required: rollNumber, grade, and parentContactNumber');
+//     }
 
-    const { contactNumber, experience } = profileData;
+//     // Validate roll number format (alphanumeric with optional hyphens)
+//     const rollNumberRegex = /^[A-Za-z0-9-]+$/;
+//     if (!rollNumberRegex.test(rollNumber)) {
+//       throw new BadRequestError('Invalid roll number format. Only alphanumeric characters and hyphens are allowed');
+//     }
 
-    const updatedUser = await prisma.$transaction(async (prismaClient: PrismaClient) => {
-      // Update user
-      const userUpdate = await prismaClient.user.update({
-        where: { id: userId },
-        data: { contactNumber }
-      });
+//     // Validate grade format (alphanumeric with optional spaces and hyphens)
+//     const gradeRegex = /^[A-Za-z0-9\s-]+$/;
+//     if (!gradeRegex.test(grade)) {
+//       throw new BadRequestError('Invalid grade format. Only alphanumeric characters, spaces, and hyphens are allowed');
+//     }
 
-      // Update teacher
-      const teacherUpdate = await prismaClient.teacher.update({
-        where: { userId },
-        data: { experience: parseInt(experience) || 0 }
-      });
+//     // Validate parent contact number
+//     if (!contactRegex.test(parentContactNumber)) {
+//       throw new BadRequestError('Invalid parent contact number format');
+//     }
 
-      return {
-        ...userUpdate,
-        teacher: teacherUpdate
-      };
-    });
+//     const updatedUser = await prisma.$transaction(async (tx) => {
+//       // Update user
+//       const userUpdate = await tx.user.update({
+//         where: { id: userId },
+//         data: { 
+//           contactNumber,
+//           profileCompleted: true
+//         }
+//       });
 
-    return {
-      id: updatedUser.id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      role: updatedUser.role,
-      contactNumber: updatedUser.contactNumber,
-      teacher: updatedUser.teacher
-    };
-  }
+//       // Update student profile
+//       const studentUpdate = await tx.student.update({
+//         where: { userId },
+//         data: {
+//           rollNumber,
+//           grade,
+//           parentContactNumber
+//         }
+//       });
 
-  throw new BadRequestError('Invalid user role');
-};
+//       return {
+//         ...userUpdate,
+//         student: studentUpdate
+//       };
+//     });
+
+//     return {
+//       id: updatedUser.id,
+//       firstName: updatedUser.firstName,
+//       lastName: updatedUser.lastName,
+//       email: updatedUser.email,
+//       role: updatedUser.role,
+//       contactNumber: updatedUser.contactNumber,
+//       profileCompleted: updatedUser.profileCompleted,
+//       createdAt: updatedUser.createdAt,
+//       updatedAt: updatedUser.updatedAt,
+//       student: updatedUser.student
+//     };
+//   } else if (user.role === UserRole.TEACHER) {
+//     if (!user.teacher) {
+//       throw new BadRequestError('Teacher profile not found');
+//     }
+
+//     const { qualification, expertise, experience, bio } = profileData;
+
+//     // Validate teacher-specific fields
+//     if (!qualification || !expertise || !bio) {
+//       throw new BadRequestError('All fields are required: qualification, expertise, and bio');
+//     }
+
+//     const updatedUser = await prisma.$transaction(async (tx) => {
+//       // Update user
+//       const userUpdate = await tx.user.update({
+//         where: { id: userId },
+//         data: { 
+//           contactNumber,
+//           profileCompleted: true
+//         }
+//       });
+
+//       // Update teacher
+//       const teacherUpdate = await tx.teacher.update({
+//         where: { userId },
+//         data: { 
+//           qualification, 
+//           expertise, 
+//           experience: experience ? parseInt(experience.toString()) : 0,
+//           bio 
+//         }
+//       });
+
+//       return {
+//         ...userUpdate,
+//         teacher: teacherUpdate
+//       };
+//     });
+
+//     return {
+//       id: updatedUser.id,
+//       firstName: updatedUser.firstName,
+//       lastName: updatedUser.lastName,
+//       email: updatedUser.email,
+//       role: updatedUser.role,
+//       contactNumber: updatedUser.contactNumber,
+//       profileCompleted: updatedUser.profileCompleted,
+//       createdAt: updatedUser.createdAt,
+//       updatedAt: updatedUser.updatedAt,
+//       teacher: updatedUser.teacher
+//     };
+//   } else if (user.role === UserRole.ADMIN) {
+//     // Admins always have complete profiles
+//     return user;
+//   }
+
+//   throw new BadRequestError('Invalid user role');
+// };
 
 export const changeUserPassword = async (userId: string, currentPassword: string, newPassword: string) => {
   // Check if user exists
@@ -451,27 +554,69 @@ export const createTeacherProfile = async (userId: string, teacherData: TeacherP
     throw new BadRequestError('User is not a teacher');
   }
 
-  if (user.teacher) {
-    throw new BadRequestError('Teacher profile already exists');
+  // Check if the teacher profile exists and is not a temporary one
+  if (user.teacher && user.profileCompleted) {
+    throw new BadRequestError('Teacher profile already exists and is complete');
   }
 
-  // Create the teacher profile
-  const teacher = await prisma.teacher.create({
-    data: {
-      userId,
-      qualification,
-      expertise,
-      experience: experience || 0,
-      bio
+  // Update the existing teacher profile or create a new one
+  let teacher;
+  if (user.teacher) {
+    // Update the existing temporary profile
+    teacher = await prisma.teacher.update({
+      where: { userId },
+      data: {
+        qualification,
+        expertise,
+        experience: experience || 0,
+        bio
+      }
+    });
+    
+    // Update the user's profileCompleted status
+    await prisma.user.update({
+      where: { id: userId },
+      data: { profileCompleted: true }
+    });
+  } else {
+    // Create a new profile (shouldn't happen with our new implementation)
+    teacher = await prisma.teacher.create({
+      data: {
+        userId,
+        qualification,
+        expertise,
+        experience: experience || 0,
+        bio
+      }
+    });
+    
+    // Update the user's profileCompleted status
+    await prisma.user.update({
+      where: { id: userId },
+      data: { profileCompleted: true }
+    });
+  }
+
+  // Get the updated user with profile
+  const updatedUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      role: true,
+      contactNumber: true,
+      isActive: true,
+      profileCompleted: true,
+      createdAt: true,
+      updatedAt: true
     }
   });
 
   // Return the user with teacher profile
   return {
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role,
+    ...updatedUser,
     teacher
   };
 };
@@ -517,46 +662,81 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
     throw new BadRequestError('User is not a student');
   }
 
-  if (user.student) {
-    throw new BadRequestError('Student profile already exists');
+  // Check if the student profile exists and is not a temporary one
+  if (user.student && user.profileCompleted) {
+    throw new BadRequestError('Student profile already exists and is complete');
   }
 
-  // Check if roll number is unique
+  // Check if roll number is unique (except for this user's temporary profile)
   const existingStudent = await prisma.student.findFirst({
-    where: { rollNumber }
+    where: { 
+      rollNumber,
+      NOT: { userId }
+    }
   });
 
   if (existingStudent) {
-    throw new BadRequestError('Roll number is already in use');
+    throw new BadRequestError('Roll number is already in use by another student');
   }
 
   try {
-    // Create the student profile
-    const student = await prisma.student.create({
-      data: {
-        userId,
-        rollNumber,
-        grade,
-        parentContactNumber
+    // Update the existing student profile or create a new one
+    let student;
+    
+    if (user.student) {
+      // Update the existing temporary profile
+      student = await prisma.student.update({
+        where: { userId },
+        data: {
+          rollNumber,
+          grade,
+          parentContactNumber
+        }
+      });
+      
+      // Update the user's profileCompleted status
+      await prisma.user.update({
+        where: { id: userId },
+        data: { profileCompleted: true }
+      });
+    } else {
+      // Create a new profile (shouldn't happen with our new implementation)
+      student = await prisma.student.create({
+        data: {
+          userId,
+          rollNumber,
+          grade,
+          parentContactNumber
+        }
+      });
+      
+      // Update the user's profileCompleted status
+      await prisma.user.update({
+        where: { id: userId },
+        data: { profileCompleted: true }
+      });
+    }
+
+    // Get the updated user with profile
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        contactNumber: true,
+        isActive: true,
+        profileCompleted: true,
+        createdAt: true,
+        updatedAt: true
       }
     });
 
     return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      student: {
-        id: student.id,
-        userId: student.userId,
-        rollNumber: student.rollNumber,
-        grade: student.grade,
-        parentContactNumber: student.parentContactNumber,
-        joiningDate: student.joiningDate,
-        completedExams: student.completedExams,
-        createdAt: student.createdAt,
-        updatedAt: student.updatedAt
-      }
+      ...updatedUser,
+      student
     };
   } catch (error) {
     if (error instanceof Error) {

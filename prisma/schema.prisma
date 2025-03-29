@@ -22,6 +22,7 @@ model User {
   role          String    // "ADMIN" | "STUDENT" | "TEACHER"
   contactNumber String    @map("contact_number")
   isActive      Boolean   @default(true) @map("is_active")
+  profileCompleted Boolean @default(false) @map("profile_completed")
   createdAt     DateTime  @default(now()) @map("created_at")
   updatedAt     DateTime  @updatedAt @map("updated_at")
   
@@ -54,9 +55,9 @@ model Subject {
 model Student {
   id              String    @id @default(uuid())
   userId          String    @unique @map("user_id")
-  rollNumber      String    @map("roll_number")
-  grade           String    @map("grade")
-  parentContactNumber String @map("parent_contact_number")
+  rollNumber      String?   @map("roll_number")
+  grade           String?   @map("grade")
+  parentContactNumber String? @map("parent_contact_number")
   joiningDate     DateTime  @default(now()) @map("joining_date")
   completedExams  Int       @default(0) @map("completed_exams")
   createdAt       DateTime  @default(now()) @map("created_at")
@@ -74,10 +75,10 @@ model Student {
 model Teacher {
   id          String    @id @default(uuid())
   userId      String    @unique @map("user_id")
-  qualification String  @map("qualification")
-  expertise    String   @map("expertise")
+  qualification String?  @map("qualification")
+  expertise    String?   @map("expertise")
   experience  Int       @default(0)
-  bio         String    @map("bio")
+  bio         String?    @map("bio")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 

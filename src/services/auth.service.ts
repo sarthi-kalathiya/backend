@@ -73,7 +73,7 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
   // Hash password
   const hashedPassword = await hashPassword(password);
 
-  // Create admin user
+  // Create admin user - admin profiles are always considered complete
   const user = await prisma.user.create({
     data: {
       firstName,
@@ -81,7 +81,8 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
       email,
       password: hashedPassword,
       role: UserRole.ADMIN,
-      contactNumber
+      contactNumber,
+      profileCompleted: true // Admin profiles are always complete
     }
   });
 
@@ -98,6 +99,7 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
       role: user.role as UserRole,
       contactNumber: user.contactNumber,
       isActive: user.isActive,
+      profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     },
@@ -136,11 +138,13 @@ export const signin = async (credentials: LoginDto): Promise<{ user: UserRespons
   return {
     user: {
       id: user.id,
-      name: user.name,
+      firstName: user.firstName,
+      lastName: user.lastName,
       email: user.email,
       role: user.role as UserRole,
       contactNumber: user.contactNumber,
       isActive: user.isActive,
+      profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     },

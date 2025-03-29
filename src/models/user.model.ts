@@ -9,6 +9,7 @@ export interface User {
   role: UserRole;
   contactNumber?: string;
   isActive: boolean;
+  profileCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -21,9 +22,9 @@ export interface UserWithProfile extends User {
 export interface Student {
   id: string;
   userId: string;
-  rollNumber: string;
-  grade: string;
-  parentContactNumber: string;
+  rollNumber?: string;
+  grade?: string;
+  parentContactNumber?: string;
   joiningDate: Date;
   completedExams: number;
   createdAt: Date;
@@ -33,7 +34,10 @@ export interface Student {
 export interface Teacher {
   id: string;
   userId: string;
+  qualification?: string;
+  expertise?: string;
   experience: number;
+  bio?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +68,7 @@ export interface UserResponseDto {
   role: UserRole;
   contactNumber?: string;
   isActive: boolean;
+  profileCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -78,8 +83,8 @@ export interface UserWithProfileResponseDto extends UserResponseDto {
 export interface TeacherResponseDto {
   id: string;
   userId: string;
-  qualification: string;
-  expertise: string;
+  qualification?: string;
+  expertise?: string;
   experience: number;
   bio?: string;
   createdAt: Date;
@@ -90,9 +95,9 @@ export interface TeacherResponseDto {
 export interface StudentResponseDto {
   id: string;
   userId: string;
-  rollNumber: string;
-  grade: string;
-  parentContactNumber: string;
+  rollNumber?: string;
+  grade?: string;
+  parentContactNumber?: string;
   joiningDate: Date;
   completedExams: number;
   createdAt: Date;
@@ -134,4 +139,21 @@ export interface CompleteProfileDto {
   name?: string;
   contactNumber?: string;
   experience?: number; // For teachers
+}
+
+// New interface for profile completion
+export interface ProfileCompletionDto {
+  // Common fields
+  contactNumber: string;
+  
+  // Student specific fields
+  rollNumber?: string;
+  grade?: string;
+  parentContactNumber?: string;
+  
+  // Teacher specific fields
+  qualification?: string;
+  expertise?: string;
+  experience?: number;
+  bio?: string;
 } 

@@ -52,21 +52,7 @@ const verifyAuthAndGetUser = async (
     throw new ForbiddenError(`${options.requiredRole} role required`);
   }
 
-  // Determine profile completion status
-  let profileCompleted = false;
-  
-  if (user.role === UserRole.ADMIN) {
-    // Admins always have completed profiles
-    profileCompleted = true;
-  } else if (options?.checkProfileCompletion) {
-    if (user.role === UserRole.STUDENT) {
-      profileCompleted = user.student !== null;
-    } else if (user.role === UserRole.TEACHER) {
-      profileCompleted = user.teacher !== null;
-    }
-  }
-
-  return { user, profileCompleted };
+  return { user, profileCompleted: user.profileCompleted };
 };
 
 /**
@@ -75,12 +61,10 @@ const verifyAuthAndGetUser = async (
 const createAuthMiddleware = (options?: { requiredRole?: UserRole, checkProfileCompletion?: boolean }) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { user, profileCompleted } = await verifyAuthAndGetUser(req, options);
+      const { user } = await verifyAuthAndGetUser(req, options);
       
-      // Attach user and profile completion status to request
-      // console.log('user', user);
+      // Attach user to request
       req.user = user;
-      req.profileCompleted = profileCompleted;
       
       next();
     } catch (error) {
@@ -123,7 +107,7 @@ export const requireProfileCompletion = (req: Request, res: Response, next: Next
   }
   
   // Only check profile completion for students and teachers
-  if ((req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER) && req.profileCompleted === false) {
+  if ((req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER) && !req.user.profileCompleted) {
     return next(new ForbiddenError('Profile setup required before accessing this resource'));
   }
   

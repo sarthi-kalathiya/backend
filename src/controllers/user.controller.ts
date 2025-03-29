@@ -30,17 +30,45 @@ export const updateCurrentUser = async (req: Request, res: Response, next: NextF
   }
 };
 
-export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    if (!req.user) {
-      throw new UnauthorizedError('User not authenticated');
-    }
-    const result = await userService.completeUserProfile(req.user.id, req.body);
-    return successResponse(res, result, 'Profile completed successfully');
-  } catch (error) {
-    next(error);
-  }
-};
+/**
+ * Complete a user's profile
+ * 
+ * This is the new, preferred method for profile completion that works with temporary profiles.
+ * When a user is first created, they have a temporary profile with empty values.
+ * This endpoint allows them to complete their profile with real data.
+ *
+ * This should be used instead of the legacy createTeacherProfile and createStudentProfile endpoints.
+ */
+// export const completeProfile = async (req: Request, res: Response, next: NextFunction) => {
+//   try {
+//     if (!req.user) {
+//       throw new UnauthorizedError('User not authenticated');
+//     }
+
+//     // Check if the profile is already completed
+//     if (req.user.profileCompleted) {
+//       throw new BadRequestError('Profile is already completed');
+//     }
+
+//     // Validate input based on user role
+//     if (req.user.role === UserRole.STUDENT) {
+//       const { contactNumber, rollNumber, grade, parentContactNumber } = req.body;
+//       if (!contactNumber || !rollNumber || !grade || !parentContactNumber) {
+//         throw new BadRequestError('All fields are required for students: contactNumber, rollNumber, grade, parentContactNumber');
+//       }
+//     } else if (req.user.role === UserRole.TEACHER) {
+//       const { contactNumber, qualification, expertise, bio, experience } = req.body;
+//       if (!contactNumber || !qualification || !expertise || !bio || !experience) {
+//         throw new BadRequestError('All fields are required for teachers: contactNumber, qualification, expertise, bio');
+//       }
+//     }
+
+//     const result = await userService.completeUserProfile(req.user.id, req.body);
+//     return successResponse(res, result, 'Profile completed successfully');
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -192,16 +220,21 @@ export const getProfileStatus = async (req: Request, res: Response, next: NextFu
     }
     
     return successResponse(res, {
-      profileCompleted: req.profileCompleted,
+      profileCompleted: req.user.profileCompleted,
       role: req.user.role,
-      requiresAdditionalSetup: req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER
+      requiresAdditionalSetup: (req.user.role === UserRole.STUDENT || req.user.role === UserRole.TEACHER) && !req.user.profileCompleted
     });
   } catch (error) {
     next(error);
   }
 };
 
-// For teacher profile creation
+// For teacher profile creation (legacy approach - use completeProfile instead)
+/**
+ * @deprecated Use completeProfile instead
+ * Legacy method for teacher profile creation
+ * This is kept for backward compatibility but will now work with temporary profiles too
+ */
 export const createTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
@@ -222,7 +255,12 @@ export const createTeacherProfile = async (req: Request, res: Response, next: Ne
   }
 };
 
-// For student profile creation
+// For student profile creation (legacy approach - use completeProfile instead)
+/**
+ * @deprecated Use completeProfile instead
+ * Legacy method for student profile creation
+ * This is kept for backward compatibility but will now work with temporary profiles too
+ */
 export const createStudentProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
