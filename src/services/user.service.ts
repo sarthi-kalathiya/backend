@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import prisma from '../utils/prismaClient';
 import { BadRequestError, NotFoundError } from '../utils/errors';
-import { UserRole } from '../constants/roles';
+import { UserRole } from '../constants/user';
 import * as authService from './auth.service';
 import { TeacherProfileDto, StudentProfileDto, UserProfileUpdateDto, CreateUserDto } from '../models/user.model';
 

@@ -3,6 +3,7 @@ export interface Subject {
   name: string;
   code: string;
   description: string;
+  credits: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -13,18 +14,22 @@ export interface CreateSubjectDto {
   name: string;
   code: string;
   description?: string;
+  credits: number;
 }
 
 export interface UpdateSubjectDto {
   name: string;
   code: string;
   description?: string;
+  credits: number;
 }
 
 export interface SubjectResponseDto {
   id: string;
   name: string;
+  code: string;
   description: string;
+  credits: number;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

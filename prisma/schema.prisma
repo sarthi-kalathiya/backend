@@ -38,6 +38,7 @@ model Subject {
   name      String    @unique
   code      String    @unique @map("code")
   description String   @default("") @map("description")
+  credits   Int       @default(3) @map("credits")
   isActive  Boolean   @default(true) @map("is_active")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

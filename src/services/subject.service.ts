@@ -1,19 +1,52 @@
 import prisma from '../utils/prismaClient';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 
-export const getAllSubjects = async (includeInactive = false) => {
+export const getAllSubjects = async (
+  includeInactive = false,
+  searchTerm?: string,
+  page = 1,
+  pageSize = 10
+) => {
   const whereCondition: any = {};
   
+  // Filter by active status
   if (!includeInactive) {
     whereCondition.isActive = true;
   }
-
+  
+  // Add search term filter if provided
+  if (searchTerm) {
+    whereCondition.OR = [
+      { name: { contains: searchTerm, mode: 'insensitive' } },
+      { code: { contains: searchTerm, mode: 'insensitive' } },
+      { description: { contains: searchTerm, mode: 'insensitive' } }
+    ];
+  }
+  
+  // Get total count of matching subjects
+  const totalItems = await prisma.subject.count({
+    where: whereCondition
+  });
+  
+  // Calculate total pages
+  const totalPages = Math.ceil(totalItems / pageSize);
+  
+  // Get subjects with pagination
   const subjects = await prisma.subject.findMany({
     where: whereCondition,
-    orderBy: { name: 'asc' }
+    orderBy: { name: 'asc' },
+    skip: (page - 1) * pageSize,
+    take: pageSize
   });
-
-  return subjects;
+  
+  // Return data with pagination info
+  return {
+    data: subjects,
+    totalItems,
+    totalPages,
+    currentPage: page,
+    pageSize
+  };
 };
 
 export const getSubjectById = async (subjectId: string) => {
@@ -28,7 +61,7 @@ export const getSubjectById = async (subjectId: string) => {
   return subject;
 };
 
-export const createSubject = async (name: string, code: string, description: string = '') => {
+export const createSubject = async (name: string, code: string, description: string = '', credits: number = 3, isActive: boolean = true) => {
   // Check if subject name already exists
   const existingSubjectWithName = await prisma.subject.findFirst({
     where: {
@@ -57,18 +90,25 @@ export const createSubject = async (name: string, code: string, description: str
     throw new BadRequestError('Subject with this code already exists');
   }
 
+  // Validate credits
+  if (credits < 1 || credits > 6) {
+    throw new BadRequestError('Credits must be between 1 and 6');
+  }
+
   const subject = await prisma.subject.create({
     data: { 
       name,
       code,
-      description 
+      description,
+      credits: credits,
+      isActive
     }
   });
 
   return subject;
 };
 
-export const updateSubject = async (subjectId: string, name: string, code: string, description?: string) => {
+export const updateSubject = async (subjectId: string, name: string, code: string, description?: string, credits?: number, isActive?: boolean) => {
   // Check if subject exists
   const subject = await prisma.subject.findUnique({
     where: { id: subjectId }
@@ -112,9 +152,22 @@ export const updateSubject = async (subjectId: string, name: string, code: strin
     }
   }
 
+  // Validate credits if provided
+  if (credits !== undefined) {
+    if (credits < 1 || credits > 6) {
+      throw new BadRequestError('Credits must be between 1 and 6');
+    }
+  }
+
   const updateData: any = { name, code };
   if (description !== undefined) {
     updateData.description = description;
+  }
+  if (credits !== undefined) {
+    updateData.credits = credits;
+  }
+  if (isActive !== undefined) {
+    updateData.isActive = isActive;
   }
 
   const updatedSubject = await prisma.subject.update({
@@ -390,4 +443,22 @@ export const assignSubjectToUser = async (userId: string, subjectId: string) => 
   }
 
   throw new BadRequestError('User must be a student or teacher to assign subjects');
+};
+
+export const deleteSubject = async (subjectId: string) => {
+  // Check if subject exists
+  const subject = await prisma.subject.findUnique({
+    where: { id: subjectId }
+  });
+
+  if (!subject) {
+    throw new NotFoundError('Subject not found');
+  }
+
+  // Delete the subject
+  await prisma.subject.delete({
+    where: { id: subjectId }
+  });
+
+  return true;
 }; 

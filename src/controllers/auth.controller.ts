@@ -19,21 +19,6 @@ export const adminSignup = async (req: Request, res: Response, next: NextFunctio
   }
 };
 
-export const adminSignin = async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const credentials: LoginDto = req.body;
-
-    if (!credentials.email || !credentials.password) {
-      throw new BadRequestError('Please provide email and password');
-    }
-
-    const result = await authService.signin(credentials);
-    return successResponse(res, result, 'Admin logged in successfully');
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const userSignin = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const credentials: LoginDto = req.body;
