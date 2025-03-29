@@ -229,12 +229,7 @@ export const getProfileStatus = async (req: Request, res: Response, next: NextFu
   }
 };
 
-// For teacher profile creation (legacy approach - use completeProfile instead)
-/**
- * @deprecated Use completeProfile instead
- * Legacy method for teacher profile creation
- * This is kept for backward compatibility but will now work with temporary profiles too
- */
+
 export const createTeacherProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
@@ -255,12 +250,7 @@ export const createTeacherProfile = async (req: Request, res: Response, next: Ne
   }
 };
 
-// For student profile creation (legacy approach - use completeProfile instead)
-/**
- * @deprecated Use completeProfile instead
- * Legacy method for student profile creation
- * This is kept for backward compatibility but will now work with temporary profiles too
- */
+
 export const createStudentProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
