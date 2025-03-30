@@ -748,6 +748,7 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
 
 // Get user with profile details
 export const getUserWithProfile = async (userId: string) => {
+  
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -797,6 +798,7 @@ export const getUserWithProfile = async (userId: string) => {
 
 // Update user profile
 export const updateUserProfile = async (userId: string, profileData: UserProfileUpdateDto) => {
+  
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -820,16 +822,33 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
   });
 
   // If teacher, update teacher profile
-  if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
-    await prisma.teacher.update({
-      where: { userId },
-      data: {
-        qualification: profileData.teacherProfile.qualification,
-        expertise: profileData.teacherProfile.expertise,
-        experience: profileData.teacherProfile.experience,
-        bio: profileData.teacherProfile.bio
-      }
-    });
+  if (user.role === UserRole.TEACHER && profileData.teacherProfile) {
+    console.log(`Updating teacher profile for userId: ${userId} with:`, profileData.teacherProfile);
+    
+    if (!user.teacher) {
+      console.warn(`Teacher record not found. Creating new teacher profile for userId: ${userId}`);
+      // Create teacher profile if it doesn't exist
+      await prisma.teacher.create({
+        data: {
+          userId,
+          qualification: profileData.teacherProfile.qualification,
+          expertise: profileData.teacherProfile.expertise,
+          experience: profileData.teacherProfile.experience,
+          bio: profileData.teacherProfile.bio
+        }
+      });
+    } else {
+      // Update existing teacher profile
+      await prisma.teacher.update({
+        where: { userId },
+        data: {
+          qualification: profileData.teacherProfile.qualification,
+          expertise: profileData.teacherProfile.expertise,
+          experience: profileData.teacherProfile.experience,
+          bio: profileData.teacherProfile.bio
+        }
+      });
+    }
   }
 
   // If student, update student profile

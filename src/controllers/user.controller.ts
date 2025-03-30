@@ -275,11 +275,17 @@ export const createStudentProfile = async (req: Request, res: Response, next: Ne
 export const getUserProfile = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.user || !req.user.id) {
-      throw new UnauthorizedError('User not authenticated');
+      throw new UnauthorizedError('User is not authenticated');
     }
     
-    const profile = await userService.getUserWithProfile(req.user.id);
-    return successResponse(res, profile);
+    const userProfile = await userService.getUserWithProfile(req.user.id);
+    
+    // Add debug log to see what's being returned for teacher profiles
+    if (userProfile.role === 'TEACHER' && userProfile.teacher) {
+      console.log('Teacher profile data being returned:', JSON.stringify(userProfile.teacher));
+    }
+    
+    return successResponse(res, userProfile, 'User profile fetched successfully');
   } catch (error) {
     next(error);
   }
