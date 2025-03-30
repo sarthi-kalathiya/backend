@@ -17,10 +17,16 @@ export const getAllSubjects = async (req: Request, res: Response, next: NextFunc
     const page = parseInt(req.query.page as string) || 1;
     const pageSize = parseInt(req.query.pageSize as string) || 10;
     
-    console.log('Parsed parameters:', { includeInactive, searchTerm, page, pageSize });
+    // Add handling for direct isActive filtering
+    let filterActive: boolean | undefined = undefined;
+    if (req.query.isActive !== undefined) {
+      filterActive = req.query.isActive === 'true';
+    }
+    
+    console.log('Parsed parameters:', { includeInactive, searchTerm, page, pageSize, filterActive });
     
     // Get subjects with pagination
-    const result = await subjectService.getAllSubjects(includeInactive, searchTerm, page, pageSize);
+    const result = await subjectService.getAllSubjects(includeInactive, searchTerm, page, pageSize, filterActive);
     
     console.log('Returning response with data:', {
       totalItems: result.totalItems,

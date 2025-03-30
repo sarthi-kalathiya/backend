@@ -5,12 +5,17 @@ export const getAllSubjects = async (
   includeInactive = false,
   searchTerm?: string,
   page = 1,
-  pageSize = 10
+  pageSize = 10,
+  filterActive?: boolean
 ) => {
   const whereCondition: any = {};
   
   // Filter by active status
-  if (!includeInactive) {
+  if (filterActive !== undefined) {
+    // If filterActive is provided, filter by that exact status
+    whereCondition.isActive = filterActive;
+  } else if (!includeInactive) {
+    // If includeInactive is false, show only active subjects
     whereCondition.isActive = true;
   }
   
