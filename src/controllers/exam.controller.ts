@@ -16,8 +16,17 @@ export const getTeacherExams = async (req: Request, res: Response, next: NextFun
       throw new BadRequestError('Teacher profile not found or incomplete');
     }
 
-    const exams = await examService.getTeacherExams(teacherId);
-    return successResponse(res, exams, 'Exams retrieved successfully');
+    // Get pagination parameters from query
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    // Validate pagination parameters
+    if (page < 1 || limit < 1) {
+      throw new BadRequestError('Invalid pagination parameters');
+    }
+
+    const result = await examService.getTeacherExams(teacherId, page, limit);
+    return successResponse(res, result, 'Exams retrieved successfully');
   } catch (error) {
     next(error);
   }

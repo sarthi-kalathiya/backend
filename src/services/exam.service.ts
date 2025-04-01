@@ -5,7 +5,17 @@ import { CreateQuestionDto, UpdateQuestionDto, StudentExam, Question } from '../
 import { PrismaClient } from '@prisma/client';
 
 // Teacher exam operations
-export const getTeacherExams = async (teacherId: string) => {
+export const getTeacherExams = async (teacherId: string, page: number = 1, limit: number = 10) => {
+  const skip = (page - 1) * limit;
+
+  // Get total count for pagination
+  const total = await prisma.exam.count({
+    where: {
+      ownerId: teacherId
+    }
+  });
+
+  // Get paginated exams
   const exams = await prisma.exam.findMany({
     where: {
       ownerId: teacherId
@@ -21,10 +31,20 @@ export const getTeacherExams = async (teacherId: string) => {
     },
     orderBy: {
       createdAt: 'desc'
-    }
+    },
+    skip,
+    take: limit
   });
 
-  return exams;
+  return {
+    exams,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 };
 
 export const getExamById = async (examId: string, teacherId?: string) => {
