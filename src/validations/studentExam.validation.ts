@@ -14,6 +14,8 @@ export const responseSchema = {
   ),
 };
 
+
+// ----
 // Exam responses validation schema (whole submission)
 export const examResponsesSchema = {
   responses: validators.compose(validators.required, validators.array),

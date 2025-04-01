@@ -90,6 +90,12 @@ export const questionSchema = {
   ),
 };
 
+// Student assignment validation schema
+export const assignExamSchema = {
+  studentIds: validators.compose(validators.required, validators.array),
+};
+
+// ----
 // Option validation schema
 export const optionSchema = {
   optionText: validators.compose(
@@ -99,12 +105,6 @@ export const optionSchema = {
     validators.maxLength(500)
   ),
 };
-
-// Student assignment validation schema
-export const assignExamSchema = {
-  studentIds: validators.compose(validators.required, validators.array),
-};
-
 // Cheat event validation schema
 export const cheatEventSchema = {
   eventType: validators.compose(

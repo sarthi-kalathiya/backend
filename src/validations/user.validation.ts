@@ -127,47 +127,6 @@ export const userProfileUpdateSchema = {
   studentProfile: validators.object,
 };
 
-// Profile completion validation schema
-export const profileCompletionSchema = {
-  // Common fields
-  contactNumber: validators.compose(
-    validators.required,
-    validators.string,
-    validators.phone
-  ),
-
-  // Student specific fields (validated based on role)
-  rollNumber: validators.compose(
-    validators.string,
-    validators.minLength(2),
-    validators.maxLength(20)
-  ),
-  grade: validators.compose(
-    validators.string,
-    validators.minLength(1),
-    validators.maxLength(20)
-  ),
-  parentContactNumber: validators.compose(validators.string, validators.phone),
-
-  // Teacher specific fields (validated based on role)
-  qualification: validators.compose(
-    validators.string,
-    validators.minLength(2),
-    validators.maxLength(100)
-  ),
-  expertise: validators.compose(
-    validators.string,
-    validators.minLength(2),
-    validators.maxLength(100)
-  ),
-  experience: validators.compose(validators.number, validators.min(0)),
-  bio: validators.compose(
-    validators.string,
-    validators.minLength(10),
-    validators.maxLength(500)
-  ),
-};
-
 // Change password validation schema
 export const changePasswordSchema = {
   currentPassword: validators.compose(
@@ -190,3 +149,5 @@ export const resetPasswordSchema = {
     validators.password
   ),
 };
+
+// ----

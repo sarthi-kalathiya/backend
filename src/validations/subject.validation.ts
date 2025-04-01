@@ -53,3 +53,4 @@ export const updateSubjectStatusSchema = {
 export const assignSubjectsSchema = {
   subjectIds: validators.compose(validators.required, validators.array),
 };
+// ----

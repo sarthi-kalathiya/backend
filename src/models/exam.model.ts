@@ -1,5 +1,43 @@
 import { ExamStatus } from "../constants/exam";
 
+export interface CreateQuestionDto {
+  questionText: string;
+  hasImage?: boolean;
+  images?: string[];
+  marks?: number;
+  negativeMarks?: number;
+  options: QuestionOptionDto[];
+}
+
+export interface UpdateQuestionDto {
+  questionText: string;
+  hasImage?: boolean;
+  images?: string[];
+  marks?: number;
+  negativeMarks?: number;
+  options: QuestionOptionDto[];
+}
+export interface Question {
+  id: string;
+  examId: string;
+  questionText: string;
+  hasImage: boolean;
+  images: string[];
+  marks: number;
+  negativeMarks: number;
+  correctOptionId: string;
+}
+export interface StudentExam {
+  id: string;
+  studentId: string;
+  examId: string;
+  status: ExamStatus;
+  startTime?: Date;
+  endTime?: Date;
+  submittedAt?: Date;
+  autoSubmitted: boolean;
+}
+// ----
 export interface Exam {
   id: string;
   name: string;
@@ -16,32 +54,10 @@ export interface Exam {
   updatedAt: Date;
 }
 
-export interface Question {
-  id: string;
-  examId: string;
-  questionText: string;
-  hasImage: boolean;
-  images: string[];
-  marks: number;
-  negativeMarks: number;
-  correctOptionId: string;
-}
-
 export interface Option {
   id: string;
   questionId: string;
   optionText: string;
-}
-
-export interface StudentExam {
-  id: string;
-  studentId: string;
-  examId: string;
-  status: ExamStatus;
-  startTime?: Date;
-  endTime?: Date;
-  submittedAt?: Date;
-  autoSubmitted: boolean;
 }
 
 export interface Result {
@@ -103,24 +119,6 @@ export interface ExamStatusUpdateDto {
 export interface QuestionOptionDto {
   text: string;
   isCorrect: boolean;
-}
-
-export interface CreateQuestionDto {
-  questionText: string;
-  hasImage?: boolean;
-  images?: string[];
-  marks?: number;
-  negativeMarks?: number;
-  options: QuestionOptionDto[];
-}
-
-export interface UpdateQuestionDto {
-  questionText: string;
-  hasImage?: boolean;
-  images?: string[];
-  marks?: number;
-  negativeMarks?: number;
-  options: QuestionOptionDto[];
 }
 
 // DTOs for student exam operations

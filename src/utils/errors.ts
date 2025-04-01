@@ -43,6 +43,7 @@ export class ConflictError extends AppError {
   }
 }
 
+// ----
 export const handleError = (error: any, res: Response) => {
   if (error instanceof AppError) {
     return res.status(error.statusCode).json({

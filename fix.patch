@@ -5,3 +5,17 @@ why update exam has requried feilds
 in assigning the exam to student - student-id joi a chhe
 able to assgin the same exam to same student more than one time
 
+
+change password dto use
+reset password dto use
+
+subject.modal to use j nai thatu
+
+
+validated:-
+config - all done
+constants - all done
+middlewares - all done
+models - all done
+validations - all done
+utils - all done

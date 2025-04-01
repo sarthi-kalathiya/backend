@@ -1,5 +1,52 @@
 import { UserRole, UserStatus } from "../constants/user";
 
+export interface UserResponseDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  contactNumber?: string;
+  isActive: boolean;
+  profileCompleted: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// DTO for creating teacher profile
+export interface TeacherProfileDto {
+  qualification: string;
+  expertise: string;
+  experience: number;
+  bio: string;
+}
+
+// DTO for creating student profile
+export interface StudentProfileDto {
+  rollNumber: string;
+  grade: string;
+  parentContactNumber: string;
+}
+
+// DTO for updating user profile
+export interface UserProfileUpdateDto {
+  firstName?: string;
+  lastName?: string;
+  contactNumber?: string;
+  teacherProfile?: Partial<TeacherProfileDto>;
+  studentProfile?: Partial<StudentProfileDto>;
+}
+// DTOs for user operations
+export interface CreateUserDto {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: UserRole;
+  contactNumber?: string;
+}
+
+// ----
 export interface User {
   id: string;
   firstName: string;
@@ -42,15 +89,6 @@ export interface Teacher {
   updatedAt: Date;
 }
 
-// DTOs for user operations
-export interface CreateUserDto {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  role: UserRole;
-  contactNumber?: string;
-}
 
 export interface UpdateUserDto {
   firstName?: string;
@@ -60,18 +98,6 @@ export interface UpdateUserDto {
 }
 
 // Base user response DTO
-export interface UserResponseDto {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: UserRole;
-  contactNumber?: string;
-  isActive: boolean;
-  profileCompleted: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
 
 // Extended user response with profile data
 export interface UserWithProfileResponseDto extends UserResponseDto {
@@ -104,20 +130,7 @@ export interface StudentResponseDto {
   updatedAt: Date;
 }
 
-// DTO for creating teacher profile
-export interface TeacherProfileDto {
-  qualification: string;
-  expertise: string;
-  experience: number;
-  bio: string;
-}
 
-// DTO for creating student profile
-export interface StudentProfileDto {
-  rollNumber: string;
-  grade: string;
-  parentContactNumber: string;
-}
 
 // DTO for updating student profile
 export interface UpdateStudentProfileDto {
@@ -126,14 +139,7 @@ export interface UpdateStudentProfileDto {
   parentContactNumber?: string;
 }
 
-// DTO for updating user profile
-export interface UserProfileUpdateDto {
-  firstName?: string;
-  lastName?: string;
-  contactNumber?: string;
-  teacherProfile?: Partial<TeacherProfileDto>;
-  studentProfile?: Partial<StudentProfileDto>;
-}
+
 
 // export interface CompleteProfileDto {
 //   name?: string;

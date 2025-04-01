@@ -1,5 +1,4 @@
 import { validators } from "../middlewares/validation.middleware";
-import { UserRole } from "../constants/user";
 
 // Admin signup validation schema
 export const adminSignupSchema = {
@@ -47,6 +46,7 @@ export const refreshTokenSchema = {
   refreshToken: validators.compose(validators.required, validators.string),
 };
 
+// ----
 // Change password validation schema
 export const changePasswordSchema = {
   currentPassword: validators.compose(validators.required, validators.string),

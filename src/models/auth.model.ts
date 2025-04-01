@@ -12,6 +12,9 @@ export interface AdminSignupDto {
   password: string;
   contactNumber: string;
 }
+export interface RefreshTokenDto {
+  refreshToken: string;
+}
 
 export interface TokenPayload {
   id: string;
@@ -24,10 +27,7 @@ export interface TokenResponse {
   refreshToken: string;
 }
 
-export interface RefreshTokenDto {
-  refreshToken: string;
-}
-
+// ----
 export interface ChangePasswordDto {
   currentPassword: string;
   newPassword: string;

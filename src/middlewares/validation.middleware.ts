@@ -2,21 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import { logger } from "../utils/logger";
 import { validate as uuidValidate } from "uuid";
 
-// Generic validation error response function
-const validationError = (
-  res: Response,
-  field: string,
-  message: string,
-  details?: any
-) => {
-  return res.status(400).json({
-    error: "Validation Error",
-    field,
-    message,
-    details,
-  });
-};
-
 // Generic validation middleware creator
 export const validateFields = (
   schema: Record<string, ValidatorFunction>,
@@ -280,6 +265,21 @@ export const validators = {
   },
 };
 
+// ----
+// Generic validation error response function
+const validationError = (
+  res: Response,
+  field: string,
+  message: string,
+  details?: any
+) => {
+  return res.status(400).json({
+    error: "Validation Error",
+    field,
+    message,
+    details,
+  });
+};
 // Validation middleware for specific endpoints
 
 // Existing validation middleware for responses

@@ -39,3 +39,5 @@ export const warningResponse = (
 export const noContentResponse = (res: Response) => {
   return res.status(204).end();
 };
+
+// ----

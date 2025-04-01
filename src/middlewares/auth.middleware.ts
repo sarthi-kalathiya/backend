@@ -6,10 +6,6 @@ import prisma from "../utils/prismaClient";
 import { UserRole } from "../constants/user";
 import { TokenPayload } from "../models/auth.model";
 
-/**
- * Core authentication function that handles token verification and user retrieval
- * All other auth middleware functions will use this
- */
 const verifyAuthAndGetUser = async (
   req: Request,
   options?: {
@@ -58,9 +54,6 @@ const verifyAuthAndGetUser = async (
   return { user, profileCompleted: user.profileCompleted };
 };
 
-/**
- * Middleware factory that creates role-specific authentication middleware
- */
 const createAuthMiddleware = (options?: {
   requiredRole?: UserRole;
   checkProfileCompletion?: boolean;
@@ -82,9 +75,6 @@ const createAuthMiddleware = (options?: {
   };
 };
 
-// ===== EXPORTED MIDDLEWARE FUNCTIONS =====
-
-// Middleware for admin authentication
 export const authenticateAdmin = createAuthMiddleware({
   requiredRole: UserRole.ADMIN,
 });
@@ -131,3 +121,5 @@ export const requireProfileCompletion = (
 
   next();
 };
+
+// ----
