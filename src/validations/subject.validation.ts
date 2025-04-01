@@ -1,4 +1,4 @@
-import { validators } from '../middlewares/validation.middleware';
+import { validators } from "../middlewares/validation.middleware";
 
 // Subject creation validation schema
 export const createSubjectSchema = {
@@ -15,15 +15,12 @@ export const createSubjectSchema = {
     validators.maxLength(20),
     validators.subjectCodePattern
   ),
-  description: validators.compose(
-    validators.string,
-    validators.maxLength(500)
-  ),
+  description: validators.compose(validators.string, validators.maxLength(500)),
   credits: validators.compose(
     validators.number,
     validators.min(1),
     validators.max(10)
-  )
+  ),
 };
 
 // Subject update validation schema
@@ -39,29 +36,20 @@ export const updateSubjectSchema = {
     validators.maxLength(20),
     validators.subjectCodePattern
   ),
-  description: validators.compose(
-    validators.string,
-    validators.maxLength(500)
-  ),
+  description: validators.compose(validators.string, validators.maxLength(500)),
   credits: validators.compose(
     validators.number,
     validators.min(1),
     validators.max(10)
-  )
+  ),
 };
 
 // Update subject status validation schema
 export const updateSubjectStatusSchema = {
-  isActive: validators.compose(
-    validators.required,
-    validators.boolean
-  )
+  isActive: validators.compose(validators.required, validators.boolean),
 };
 
 // Subject assignment validation schema
 export const assignSubjectsSchema = {
-  subjectIds: validators.compose(
-    validators.required,
-    validators.array
-  )
-}; 
+  subjectIds: validators.compose(validators.required, validators.array),
+};

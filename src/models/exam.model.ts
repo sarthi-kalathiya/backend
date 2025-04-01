@@ -1,4 +1,4 @@
-import { ExamStatus } from '../constants/exam';
+import { ExamStatus } from "../constants/exam";
 
 export interface Exam {
   id: string;
@@ -126,4 +126,4 @@ export interface UpdateQuestionDto {
 // DTOs for student exam operations
 export interface AssignExamDto {
   studentIds: string[];
-} 
+}

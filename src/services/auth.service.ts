@@ -1,11 +1,20 @@
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import config from '../config';
-import prisma from '../utils/prismaClient';
-import { UnauthorizedError, BadRequestError, NotFoundError } from '../utils/errors';
-import { UserRole } from '../constants/user';
-import { AdminSignupDto, LoginDto, TokenPayload, TokenResponse } from '../models/auth.model';
-import { UserResponseDto } from '../models/user.model';
+import jwt from "jsonwebtoken";
+import bcrypt from "bcryptjs";
+import config from "../config";
+import prisma from "../utils/prismaClient";
+import {
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+} from "../utils/errors";
+import { UserRole } from "../constants/user";
+import {
+  AdminSignupDto,
+  LoginDto,
+  TokenPayload,
+  TokenResponse,
+} from "../models/auth.model";
+import { UserResponseDto } from "../models/user.model";
 
 export const generateToken = (userId: string, role: UserRole): string => {
   return jwt.sign(
@@ -15,7 +24,10 @@ export const generateToken = (userId: string, role: UserRole): string => {
   );
 };
 
-export const generateRefreshToken = (userId: string, role: UserRole): string => {
+export const generateRefreshToken = (
+  userId: string,
+  role: UserRole
+): string => {
   return jwt.sign(
     { id: userId, role } as TokenPayload,
     config.app.jwtRefreshSecret as jwt.Secret,
@@ -25,10 +37,13 @@ export const generateRefreshToken = (userId: string, role: UserRole): string => 
 
 export const verifyRefreshToken = (token: string): TokenPayload => {
   try {
-    const decoded = jwt.verify(token, config.app.jwtRefreshSecret as jwt.Secret) as TokenPayload;
+    const decoded = jwt.verify(
+      token,
+      config.app.jwtRefreshSecret as jwt.Secret
+    ) as TokenPayload;
     return decoded;
   } catch (error) {
-    throw new UnauthorizedError('Invalid refresh token');
+    throw new UnauthorizedError("Invalid refresh token");
   }
 };
 
@@ -37,37 +52,44 @@ export const hashPassword = async (password: string): Promise<string> => {
   return bcrypt.hash(password, salt);
 };
 
-export const comparePassword = async (password: string, hashedPassword: string): Promise<boolean> => {
+export const comparePassword = async (
+  password: string,
+  hashedPassword: string
+): Promise<boolean> => {
   return bcrypt.compare(password, hashedPassword);
 };
 
-export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
+export const adminSignup = async (
+  adminData: AdminSignupDto
+): Promise<{ user: UserResponseDto } & TokenResponse> => {
   const { firstName, lastName, email, password, contactNumber } = adminData;
-  
+
   // Validate required fields
   if (!firstName || !lastName || !email || !password || !contactNumber) {
-    throw new BadRequestError('All fields are required: firstName, lastName, email, password, and contact number');
+    throw new BadRequestError(
+      "All fields are required: firstName, lastName, email, password, and contact number"
+    );
   }
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    throw new BadRequestError('Invalid email format');
+    throw new BadRequestError("Invalid email format");
   }
 
   // Validate contact number (assuming a simple format, adjust as needed)
   const contactRegex = /^\+?[\d\s-]{10,}$/;
   if (!contactRegex.test(contactNumber)) {
-    throw new BadRequestError('Invalid contact number format');
+    throw new BadRequestError("Invalid contact number format");
   }
 
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
   });
 
   if (existingUser) {
-    throw new BadRequestError('Email already in use');
+    throw new BadRequestError("Email already in use");
   }
 
   // Hash password
@@ -82,8 +104,8 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
       password: hashedPassword,
       role: UserRole.ADMIN,
       contactNumber,
-      profileCompleted: true // Admin profiles are always complete
-    }
+      profileCompleted: true, // Admin profiles are always complete
+    },
   });
 
   // Generate tokens
@@ -101,34 +123,36 @@ export const adminSignup = async (adminData: AdminSignupDto): Promise<{ user: Us
       isActive: user.isActive,
       profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     },
     accessToken,
-    refreshToken
+    refreshToken,
   };
 };
 
-export const signin = async (credentials: LoginDto): Promise<{ user: UserResponseDto } & TokenResponse> => {
+export const signin = async (
+  credentials: LoginDto
+): Promise<{ user: UserResponseDto } & TokenResponse> => {
   const { email, password } = credentials;
-  
+
   // Find user by email
   const user = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Check if user is active
   if (!user.isActive) {
-    throw new UnauthorizedError('Account is inactive');
+    throw new UnauthorizedError("Account is inactive");
   }
 
   // Verify password
   const isPasswordValid = await comparePassword(password, user.password);
   if (!isPasswordValid) {
-    throw new UnauthorizedError('Invalid credentials');
+    throw new UnauthorizedError("Invalid credentials");
   }
 
   // Generate tokens
@@ -146,23 +170,25 @@ export const signin = async (credentials: LoginDto): Promise<{ user: UserRespons
       isActive: user.isActive,
       profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      updatedAt: user.updatedAt,
     },
     accessToken,
-    refreshToken
+    refreshToken,
   };
 };
 
-export const refreshAuthToken = async (refreshToken: string): Promise<TokenResponse> => {
+export const refreshAuthToken = async (
+  refreshToken: string
+): Promise<TokenResponse> => {
   const decoded = verifyRefreshToken(refreshToken);
-  
+
   // Verify user exists
   const user = await prisma.user.findUnique({
-    where: { id: decoded.id }
+    where: { id: decoded.id },
   });
 
   if (!user || !user.isActive) {
-    throw new UnauthorizedError('Invalid token');
+    throw new UnauthorizedError("Invalid token");
   }
 
   // Generate new tokens
@@ -171,6 +197,6 @@ export const refreshAuthToken = async (refreshToken: string): Promise<TokenRespo
 
   return {
     accessToken,
-    refreshToken: newRefreshToken
+    refreshToken: newRefreshToken,
   };
-}; 
+};

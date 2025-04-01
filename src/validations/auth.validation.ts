@@ -1,5 +1,5 @@
-import { validators } from '../middlewares/validation.middleware';
-import { UserRole } from '../constants/user';
+import { validators } from "../middlewares/validation.middleware";
+import { UserRole } from "../constants/user";
 
 // Admin signup validation schema
 export const adminSignupSchema = {
@@ -29,7 +29,7 @@ export const adminSignupSchema = {
     validators.required,
     validators.string,
     validators.phone
-  )
+  ),
 };
 
 // User signin validation schema
@@ -39,31 +39,22 @@ export const signinSchema = {
     validators.string,
     validators.email
   ),
-  password: validators.compose(
-    validators.required,
-    validators.string
-  )
+  password: validators.compose(validators.required, validators.string),
 };
 
 // Refresh token validation schema
 export const refreshTokenSchema = {
-  refreshToken: validators.compose(
-    validators.required,
-    validators.string
-  )
+  refreshToken: validators.compose(validators.required, validators.string),
 };
 
 // Change password validation schema
 export const changePasswordSchema = {
-  currentPassword: validators.compose(
-    validators.required,
-    validators.string
-  ),
+  currentPassword: validators.compose(validators.required, validators.string),
   newPassword: validators.compose(
     validators.required,
     validators.string,
     validators.password
-  )
+  ),
 };
 
 // Reset password validation schema
@@ -72,5 +63,5 @@ export const resetPasswordSchema = {
     validators.required,
     validators.string,
     validators.password
-  )
-}; 
+  ),
+};

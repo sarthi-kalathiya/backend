@@ -33,12 +33,14 @@ A RESTful API for an online examination system built with Express, TypeScript, a
 ### Installation
 
 1. Clone the repository:
+
 ```bash
 git clone <repository-url>
 cd online-exam-backend
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 # or
@@ -46,15 +48,18 @@ yarn install
 ```
 
 3. Configure environment variables:
+
    - Copy the `.env.example` file to `.env`
    - Update the database connection string and other settings
 
 4. Apply Prisma migrations:
+
 ```bash
 npx prisma migrate dev
 ```
 
 5. Start the development server:
+
 ```bash
 npm run dev
 # or
@@ -143,4 +148,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
 3. Commit your changes (`git commit -m 'Add some amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request 
+5. Open a Pull Request

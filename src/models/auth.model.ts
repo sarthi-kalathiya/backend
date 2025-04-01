@@ -1,4 +1,4 @@
-import { UserRole } from '../constants/user';
+import { UserRole } from "../constants/user";
 
 export interface LoginDto {
   email: string;
@@ -35,4 +35,4 @@ export interface ChangePasswordDto {
 
 export interface ResetPasswordDto {
   newPassword: string;
-} 
+}

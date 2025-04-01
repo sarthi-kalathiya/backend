@@ -1,6 +1,6 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import { logger } from '../utils/logger';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import { logger } from "../utils/logger";
 
 const prisma = new PrismaClient();
 
@@ -12,70 +12,80 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
     const teacherId = req.user?.teacher?.id;
 
     if (!Array.isArray(studentIds) || studentIds.length === 0) {
-      return res.status(400).json({ error: 'No student IDs provided' });
+      return res.status(400).json({ error: "No student IDs provided" });
     }
 
     // Verify teacher owns the exam
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
+        ownerId: teacherId,
       },
       include: {
-        bannedStudents: true
-      }
+        bannedStudents: true,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     // Check if the exam is valid (question count and total marks match)
-    if (exam.currentQuestionCount !== exam.numQuestions || exam.currentTotalMarks !== exam.totalMarks) {
-      return res.status(400).json({ 
-        error: 'Exam configuration is incomplete',
+    if (
+      exam.currentQuestionCount !== exam.numQuestions ||
+      exam.currentTotalMarks !== exam.totalMarks
+    ) {
+      return res.status(400).json({
+        error: "Exam configuration is incomplete",
         details: {
           questions: {
             required: exam.numQuestions,
             current: exam.currentQuestionCount,
-            isComplete: exam.currentQuestionCount === exam.numQuestions
+            isComplete: exam.currentQuestionCount === exam.numQuestions,
           },
           totalMarks: {
             required: exam.totalMarks,
             current: exam.currentTotalMarks,
-            isComplete: exam.currentTotalMarks === exam.totalMarks
-          }
+            isComplete: exam.currentTotalMarks === exam.totalMarks,
+          },
         },
-        message: 'The exam cannot be assigned to students until it has the correct number of questions and total marks.'
+        message:
+          "The exam cannot be assigned to students until it has the correct number of questions and total marks.",
       });
     }
 
     // Check if any students are banned
-    const bannedStudentIds = exam.bannedStudents.map((student: { id: string }) => student.id);
-    const attemptedBannedStudents = studentIds.filter((id: string) => bannedStudentIds.includes(id));
-    
+    const bannedStudentIds = exam.bannedStudents.map(
+      (student: { id: string }) => student.id
+    );
+    const attemptedBannedStudents = studentIds.filter((id: string) =>
+      bannedStudentIds.includes(id)
+    );
+
     if (attemptedBannedStudents.length > 0) {
       // Fetch details of banned students for better error information
       const bannedStudents = await prisma.student.findMany({
         where: {
           id: {
-            in: attemptedBannedStudents
-          }
+            in: attemptedBannedStudents,
+          },
         },
         include: {
-          user: true
-        }
+          user: true,
+        },
       });
 
-      const bannedStudentInfo = bannedStudents.map((student: { id: string, user: { name: string, email: string } }) => ({
-        id: student.id,
-        name: student.user.name,
-        email: student.user.email
-      }));
+      const bannedStudentInfo = bannedStudents.map(
+        (student: { id: string; user: { name: string; email: string } }) => ({
+          id: student.id,
+          name: student.user.name,
+          email: student.user.email,
+        })
+      );
 
       return res.status(400).json({
-        error: 'Cannot assign exam to banned students',
-        bannedStudents: bannedStudentInfo
+        error: "Cannot assign exam to banned students",
+        bannedStudents: bannedStudentInfo,
       });
     }
 
@@ -84,18 +94,22 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
       where: {
         subjectId: exam.subjectId,
         studentId: {
-          in: studentIds
-        }
-      }
+          in: studentIds,
+        },
+      },
     });
 
-    const validStudentIds = enrolledStudents.map((es: { studentId: string }) => es.studentId);
-    const invalidStudentIds = studentIds.filter((id: string) => !validStudentIds.includes(id));
+    const validStudentIds = enrolledStudents.map(
+      (es: { studentId: string }) => es.studentId
+    );
+    const invalidStudentIds = studentIds.filter(
+      (id: string) => !validStudentIds.includes(id)
+    );
 
     if (invalidStudentIds.length > 0) {
       return res.status(400).json({
-        error: 'Some students are not enrolled in this subject',
-        invalidStudentIds
+        error: "Some students are not enrolled in this subject",
+        invalidStudentIds,
       });
     }
 
@@ -104,18 +118,22 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
       where: {
         examId,
         studentId: {
-          in: validStudentIds
-        }
-      }
+          in: validStudentIds,
+        },
+      },
     });
 
-    const alreadyAssignedStudentIds = existingAssignments.map((ea: { studentId: string }) => ea.studentId);
-    const newStudentIds = validStudentIds.filter((id: string) => !alreadyAssignedStudentIds.includes(id));
+    const alreadyAssignedStudentIds = existingAssignments.map(
+      (ea: { studentId: string }) => ea.studentId
+    );
+    const newStudentIds = validStudentIds.filter(
+      (id: string) => !alreadyAssignedStudentIds.includes(id)
+    );
 
     if (newStudentIds.length === 0) {
       return res.status(400).json({
-        error: 'All valid students are already assigned to this exam',
-        alreadyAssignedStudentIds
+        error: "All valid students are already assigned to this exam",
+        alreadyAssignedStudentIds,
       });
     }
 
@@ -126,8 +144,8 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
           data: {
             studentId,
             examId,
-            status: 'NOT_STARTED'
-          }
+            status: "NOT_STARTED",
+          },
         })
       )
     );
@@ -136,11 +154,14 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
     res.json({
       message: `Assigned exam to ${assignments.length} students`,
       assignments,
-      alreadyAssignedStudents: alreadyAssignedStudentIds.length > 0 ? alreadyAssignedStudentIds : undefined
+      alreadyAssignedStudents:
+        alreadyAssignedStudentIds.length > 0
+          ? alreadyAssignedStudentIds
+          : undefined,
     });
   } catch (error) {
-    logger.error('Error assigning exam to students:', error);
-    res.status(500).json({ error: 'Failed to assign exam to students' });
+    logger.error("Error assigning exam to students:", error);
+    res.status(500).json({ error: "Failed to assign exam to students" });
   }
 };
 
@@ -154,12 +175,12 @@ export const getAssignedStudents = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     const studentExams = await prisma.studentExam.findMany({
@@ -167,17 +188,19 @@ export const getAssignedStudents = async (req: Request, res: Response) => {
       include: {
         student: {
           include: {
-            user: true
-          }
-        }
-      }
+            user: true,
+          },
+        },
+      },
     });
 
-    logger.info(`Retrieved ${studentExams.length} students assigned to exam ${examId}`);
+    logger.info(
+      `Retrieved ${studentExams.length} students assigned to exam ${examId}`
+    );
     res.json(studentExams);
   } catch (error) {
-    logger.error('Error getting assigned students:', error);
-    res.status(500).json({ error: 'Failed to get assigned students' });
+    logger.error("Error getting assigned students:", error);
+    res.status(500).json({ error: "Failed to get assigned students" });
   }
 };
 
@@ -191,12 +214,12 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     // Check if student is banned
@@ -205,10 +228,10 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
         id: examId,
         bannedStudents: {
           some: {
-            id: studentId
-          }
-        }
-      }
+            id: studentId,
+          },
+        },
+      },
     });
 
     if (isBanned) {
@@ -217,26 +240,26 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
         where: { id: examId },
         data: {
           bannedStudents: {
-            disconnect: { id: studentId }
-          }
-        }
+            disconnect: { id: studentId },
+          },
+        },
       });
       logger.info(`Unbanned student ${studentId} from exam ${examId}`);
-      res.json({ message: 'Student unbanned successfully' });
+      res.json({ message: "Student unbanned successfully" });
     } else {
       // Find existing exam assignment
       const existingAssignment = await prisma.studentExam.findFirst({
         where: {
           examId,
-          studentId
+          studentId,
         },
         include: {
           student: {
             include: {
-              user: true
-            }
-          }
-        }
+              user: true,
+            },
+          },
+        },
       });
 
       // Ban student
@@ -244,44 +267,49 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
         where: { id: examId },
         data: {
           bannedStudents: {
-            connect: { id: studentId }
-          }
-        }
+            connect: { id: studentId },
+          },
+        },
       });
 
       // If student is already assigned to this exam, remove the assignment
       if (existingAssignment) {
         // We can only delete the assignment if the exam hasn't been started or completed
-        if (existingAssignment.status === 'NOT_STARTED') {
+        if (existingAssignment.status === "NOT_STARTED") {
           await prisma.studentExam.delete({
-            where: { id: existingAssignment.id }
+            where: { id: existingAssignment.id },
           });
-          logger.info(`Banned student ${studentId} (${existingAssignment.student.user.name}) from exam ${examId} and removed assignment`);
-          res.json({ 
-            message: 'Student banned successfully and exam assignment removed',
-            removedAssignment: true
+          logger.info(
+            `Banned student ${studentId} (${existingAssignment.student.user.name}) from exam ${examId} and removed assignment`
+          );
+          res.json({
+            message: "Student banned successfully and exam assignment removed",
+            removedAssignment: true,
           });
         } else {
           // If the exam is already in progress or completed, we can't delete it
           // but we mark it as being banned
-          logger.warn(`Banned student ${studentId} from exam ${examId}, but could not remove assignment because status is ${existingAssignment.status}`);
-          res.json({ 
-            message: 'Student banned successfully, but existing exam assignment could not be removed due to its status',
+          logger.warn(
+            `Banned student ${studentId} from exam ${examId}, but could not remove assignment because status is ${existingAssignment.status}`
+          );
+          res.json({
+            message:
+              "Student banned successfully, but existing exam assignment could not be removed due to its status",
             removedAssignment: false,
-            reason: `Exam is in "${existingAssignment.status}" status`
+            reason: `Exam is in "${existingAssignment.status}" status`,
           });
         }
       } else {
         logger.info(`Banned student ${studentId} from exam ${examId}`);
-        res.json({ 
-          message: 'Student banned successfully',
-          removedAssignment: false
+        res.json({
+          message: "Student banned successfully",
+          removedAssignment: false,
         });
       }
     }
   } catch (error) {
-    logger.error('Error toggling student ban:', error);
-    res.status(500).json({ error: 'Failed to toggle student ban' });
+    logger.error("Error toggling student ban:", error);
+    res.status(500).json({ error: "Failed to toggle student ban" });
   }
 };
 
@@ -295,41 +323,41 @@ export const getExamResults = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     const results = await prisma.result.findMany({
       where: {
         studentExam: {
-          examId
-        }
+          examId,
+        },
       },
       include: {
         studentExam: {
           include: {
             student: {
               include: {
-                user: true
-              }
-            }
-          }
-        }
-      }
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     logger.info(`Retrieved ${results.length} results for exam ${examId}`);
     res.json({
       results,
-      totalMarks: exam.totalMarks
+      totalMarks: exam.totalMarks,
     });
   } catch (error) {
-    logger.error('Error getting exam results:', error);
-    res.status(500).json({ error: 'Failed to get exam results' });
+    logger.error("Error getting exam results:", error);
+    res.status(500).json({ error: "Failed to get exam results" });
   }
 };
 
@@ -343,46 +371,46 @@ export const getStudentResult = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     const result = await prisma.result.findFirst({
       where: {
         studentExam: {
           examId,
-          studentId
-        }
+          studentId,
+        },
       },
       include: {
         studentExam: {
           include: {
             student: {
               include: {
-                user: true
-              }
-            }
-          }
-        }
-      }
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!result) {
-      return res.status(404).json({ error: 'Result not found' });
+      return res.status(404).json({ error: "Result not found" });
     }
 
     logger.info(`Retrieved result for student ${studentId}, exam ${examId}`);
     res.json({
       ...result,
-      totalMarks: exam.totalMarks
+      totalMarks: exam.totalMarks,
     });
   } catch (error) {
-    logger.error('Error getting student result:', error);
-    res.status(500).json({ error: 'Failed to get student result' });
+    logger.error("Error getting student result:", error);
+    res.status(500).json({ error: "Failed to get student result" });
   }
 };
 
@@ -396,43 +424,45 @@ export const getStudentAnswerSheet = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     const answerSheet = await prisma.answerSheet.findFirst({
       where: {
         studentExam: {
           examId,
-          studentId
-        }
+          studentId,
+        },
       },
       include: {
         responses: {
           include: {
             question: {
               include: {
-                options: true
-              }
-            }
-          }
-        }
-      }
+                options: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!answerSheet) {
-      return res.status(404).json({ error: 'Answer sheet not found' });
+      return res.status(404).json({ error: "Answer sheet not found" });
     }
 
-    logger.info(`Retrieved answer sheet for student ${studentId}, exam ${examId}`);
+    logger.info(
+      `Retrieved answer sheet for student ${studentId}, exam ${examId}`
+    );
     res.json(answerSheet);
   } catch (error) {
-    logger.error('Error getting student answer sheet:', error);
-    res.status(500).json({ error: 'Failed to get student answer sheet' });
+    logger.error("Error getting student answer sheet:", error);
+    res.status(500).json({ error: "Failed to get student answer sheet" });
   }
 };
 
@@ -446,31 +476,33 @@ export const getStudentCheatLogs = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
-      }
+        ownerId: teacherId,
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
     const cheatLogs = await prisma.antiCheatingLog.findMany({
       where: {
         studentExam: {
           examId,
-          studentId
-        }
+          studentId,
+        },
       },
       orderBy: {
-        eventTime: 'desc'
-      }
+        eventTime: "desc",
+      },
     });
 
-    logger.info(`Retrieved ${cheatLogs.length} cheat logs for student ${studentId}, exam ${examId}`);
+    logger.info(
+      `Retrieved ${cheatLogs.length} cheat logs for student ${studentId}, exam ${examId}`
+    );
     res.json(cheatLogs);
   } catch (error) {
-    logger.error('Error getting student cheat logs:', error);
-    res.status(500).json({ error: 'Failed to get student cheat logs' });
+    logger.error("Error getting student cheat logs:", error);
+    res.status(500).json({ error: "Failed to get student cheat logs" });
   }
 };
 
@@ -484,25 +516,27 @@ export const getBannedStudents = async (req: Request, res: Response) => {
     const exam = await prisma.exam.findFirst({
       where: {
         id: examId,
-        ownerId: teacherId
+        ownerId: teacherId,
       },
       include: {
         bannedStudents: {
           include: {
-            user: true
-          }
-        }
-      }
+            user: true,
+          },
+        },
+      },
     });
 
     if (!exam) {
-      return res.status(404).json({ error: 'Exam not found or unauthorized' });
+      return res.status(404).json({ error: "Exam not found or unauthorized" });
     }
 
-    logger.info(`Retrieved ${exam.bannedStudents.length} banned students for exam ${examId}`);
+    logger.info(
+      `Retrieved ${exam.bannedStudents.length} banned students for exam ${examId}`
+    );
     res.json(exam.bannedStudents);
   } catch (error) {
-    logger.error('Error getting banned students:', error);
-    res.status(500).json({ error: 'Failed to get banned students' });
+    logger.error("Error getting banned students:", error);
+    res.status(500).json({ error: "Failed to get banned students" });
   }
-}; 
+};

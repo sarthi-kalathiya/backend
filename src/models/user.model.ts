@@ -1,4 +1,4 @@
-import { UserRole, UserStatus } from '../constants/user';
+import { UserRole, UserStatus } from "../constants/user";
 
 export interface User {
   id: string;
@@ -145,15 +145,15 @@ export interface UserProfileUpdateDto {
 export interface ProfileCompletionDto {
   // Common fields
   contactNumber: string;
-  
+
   // Student specific fields
   rollNumber?: string;
   grade?: string;
   parentContactNumber?: string;
-  
+
   // Teacher specific fields
   qualification?: string;
   expertise?: string;
   experience?: number;
   bio?: string;
-} 
+}

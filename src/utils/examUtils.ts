@@ -1,5 +1,5 @@
-import { PrismaClient } from '@prisma/client';
-import { logger } from './logger';
+import { PrismaClient } from "@prisma/client";
+import { logger } from "./logger";
 
 const prisma = new PrismaClient();
 
@@ -9,55 +9,57 @@ const prisma = new PrismaClient();
  */
 export const autoSubmitExpiredExams = async () => {
   const now = new Date();
-  
+
   try {
     // Find all exams that are in progress but have passed their end time
     const expiredExams = await prisma.studentExam.findMany({
       where: {
-        status: 'IN_PROGRESS',
+        status: "IN_PROGRESS",
         endTime: {
-          lt: now
-        }
+          lt: now,
+        },
       },
       include: {
         student: {
           include: {
-            user: true
-          }
+            user: true,
+          },
         },
         exam: {
           include: {
             questions: {
               include: {
-                options: true
-              }
-            }
-          }
+                options: true,
+              },
+            },
+          },
         },
         answerSheet: {
           include: {
-            responses: true
-          }
-        }
-      }
+            responses: true,
+          },
+        },
+      },
     });
 
     logger.info(`Found ${expiredExams.length} expired exams to auto-submit`);
-    
+
     let successCount = 0;
     let errorCount = 0;
-    
+
     for (const studentExam of expiredExams) {
       try {
         if (!studentExam.exam || !studentExam.student) {
-          logger.error(`Skipping auto-submit for exam ${studentExam.id}: Missing exam or student data`);
+          logger.error(
+            `Skipping auto-submit for exam ${studentExam.id}: Missing exam or student data`
+          );
           errorCount++;
           continue;
         }
 
         // Get existing responses if any
         const responses = studentExam.answerSheet?.responses || [];
-        
+
         // Create answer sheet if it doesn't exist
         let answerSheet = studentExam.answerSheet;
         if (!answerSheet) {
@@ -65,29 +67,35 @@ export const autoSubmitExpiredExams = async () => {
             data: {
               studentExamId: studentExam.id,
               responses: {
-                create: responses.map(response => ({
+                create: responses.map((response) => ({
                   questionId: response.questionId,
-                  optionId: response.optionId
-                }))
-              }
-            }
+                  optionId: response.optionId,
+                })),
+              },
+            },
           });
         }
-        
+
         // Calculate marks
         let obtainedMarks = 0;
         const startTime = studentExam.startTime || now; // Fallback in case startTime is null
-        const timeTaken = Math.floor((now.getTime() - startTime.getTime()) / 1000);
-        
+        const timeTaken = Math.floor(
+          (now.getTime() - startTime.getTime()) / 1000
+        );
+
         // Calculate marks for each response
         if (Array.isArray(responses) && responses.length > 0) {
           for (const response of responses) {
             if (!response || !response.questionId || !response.optionId) {
-              logger.warn(`Skipping invalid response in auto-submit for exam ${studentExam.id}`);
+              logger.warn(
+                `Skipping invalid response in auto-submit for exam ${studentExam.id}`
+              );
               continue;
             }
-            
-            const question = studentExam.exam.questions.find(q => q.id === response.questionId);
+
+            const question = studentExam.exam.questions.find(
+              (q) => q.id === response.questionId
+            );
             if (question && response.optionId === question.correctOptionId) {
               obtainedMarks += question.marks;
             } else if (question && question.negativeMarks > 0) {
@@ -95,63 +103,68 @@ export const autoSubmitExpiredExams = async () => {
             }
           }
         } else {
-          logger.info(`No responses found for auto-submitted exam ${studentExam.id}`);
+          logger.info(
+            `No responses found for auto-submitted exam ${studentExam.id}`
+          );
         }
-        
+
         // Ensure obtained marks is not negative
         obtainedMarks = Math.max(0, obtainedMarks);
-        
+
         // Create result
         await prisma.result.create({
           data: {
             studentExamId: studentExam.id,
             marks: obtainedMarks,
             timeTaken,
-            status: obtainedMarks >= studentExam.exam.passingMarks ? 'PASS' : 'FAIL',
-            autoGraded: true
-          }
+            status:
+              obtainedMarks >= studentExam.exam.passingMarks ? "PASS" : "FAIL",
+            autoGraded: true,
+          },
         });
-        
+
         // Update student stats
         await prisma.student.update({
           where: { id: studentExam.student.id },
           data: {
             completedExams: {
-              increment: 1
-            }
-          }
+              increment: 1,
+            },
+          },
         });
-        
+
         // Update student exam status
         await prisma.studentExam.update({
           where: { id: studentExam.id },
           data: {
-            status: 'COMPLETED',
+            status: "COMPLETED",
             submittedAt: now,
-            autoSubmitted: true
-          }
+            autoSubmitted: true,
+          },
         });
-        
-        logger.info(`Auto-submitted exam for student ${studentExam.student.user.name} (ID: ${studentExam.studentId}), exam ID: ${studentExam.examId}`);
+
+        logger.info(
+          `Auto-submitted exam for student ${studentExam.student.user.name} (ID: ${studentExam.studentId}), exam ID: ${studentExam.examId}`
+        );
         successCount++;
       } catch (error) {
         logger.error(`Error auto-submitting exam ${studentExam.id}:`, error);
         errorCount++;
       }
     }
-    
+
     return {
       processed: expiredExams.length,
       success: successCount,
-      errors: errorCount
+      errors: errorCount,
     };
   } catch (error) {
-    logger.error('Error in auto-submit process:', error);
+    logger.error("Error in auto-submit process:", error);
     return {
       processed: 0,
       success: 0,
       errors: 1,
-      error
+      error,
     };
   }
 };
@@ -159,46 +172,50 @@ export const autoSubmitExpiredExams = async () => {
 /**
  * Checks and enforces exam time limits
  * Returns the time remaining in seconds, or 0 if time is up
-*/
+ */
 export const checkExamTimeLimit = async (studentExamId: string) => {
   const studentExam = await prisma.studentExam.findUnique({
     where: { id: studentExamId },
     include: {
-      exam: true
-    }
+      exam: true,
+    },
   });
-  
+
   if (!studentExam) {
-    throw new Error('Exam not found');
+    throw new Error("Exam not found");
   }
-  
-  if (studentExam.status !== 'IN_PROGRESS') {
+
+  if (studentExam.status !== "IN_PROGRESS") {
     return {
       timeRemaining: 0,
       isActive: false,
-      message: 'Exam is not in progress'
+      message: "Exam is not in progress",
     };
   }
-  
+
   const now = new Date();
-  const endTime = studentExam.endTime || new Date(studentExam.startTime!.getTime() + (studentExam.exam.duration * 60 * 1000));
-  
+  const endTime =
+    studentExam.endTime ||
+    new Date(
+      studentExam.startTime!.getTime() + studentExam.exam.duration * 60 * 1000
+    );
+
   if (now > endTime) {
     // Time is up
     return {
       timeRemaining: 0,
       isActive: false,
-      message: 'Time is up'
+      message: "Time is up",
     };
   }
-  
+
   // Calculate remaining time in seconds
   const remainingTime = Math.floor((endTime.getTime() - now.getTime()) / 1000);
-  
+
   return {
     timeRemaining: remainingTime,
     isActive: true,
-    endTime
+    endTime,
   };
 };
 
@@ -211,16 +228,16 @@ export const prepareExamReminders = async () => {
   const now = new Date();
   const tomorrow = new Date(now);
   tomorrow.setDate(tomorrow.getDate() + 1);
-  
+
   try {
     // Find exams starting within the next 24 hours
     const upcomingExams = await prisma.exam.findMany({
       where: {
         startDate: {
           gt: now,
-          lt: tomorrow
+          lt: tomorrow,
         },
-        isActive: true
+        isActive: true,
       },
       include: {
         subject: true,
@@ -229,54 +246,56 @@ export const prepareExamReminders = async () => {
             user: {
               select: {
                 name: true,
-                email: true
-              }
-            }
-          }
+                email: true,
+              },
+            },
+          },
         },
         studentExams: {
           where: {
-            status: 'NOT_STARTED'
+            status: "NOT_STARTED",
           },
           include: {
             student: {
               include: {
-                user: true
-              }
-            }
-          }
-        }
-      }
+                user: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     logger.info(`Found ${upcomingExams.length} upcoming exams for reminders`);
-    
+
     // Prepare notifications for each student
     const notifications = [];
-    
+
     for (const exam of upcomingExams) {
       const startTime = new Date(exam.startDate);
-      const hoursUntilStart = Math.round((startTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-      
+      const hoursUntilStart = Math.round(
+        (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+      );
+
       for (const studentExam of exam.studentExams) {
         const student = studentExam.student;
-        
+
         // Check if student is banned
         const isBanned = await prisma.exam.findFirst({
           where: {
             id: exam.id,
             bannedStudents: {
               some: {
-                id: student.id
-              }
-            }
-          }
+                id: student.id,
+              },
+            },
+          },
         });
-        
+
         if (isBanned) {
           continue; // Skip banned students
         }
-        
+
         notifications.push({
           examId: exam.id,
           examName: exam.name,
@@ -288,15 +307,17 @@ export const prepareExamReminders = async () => {
           studentId: student.id,
           studentName: student.user.name,
           studentEmail: student.user.email,
-          message: `Reminder: Your exam "${exam.name}" for ${exam.subject.name} starts in ${hoursUntilStart} hours.`
+          message: `Reminder: Your exam "${exam.name}" for ${exam.subject.name} starts in ${hoursUntilStart} hours.`,
         });
       }
     }
-    
-    logger.info(`Prepared ${notifications.length} reminders for students with upcoming exams`);
+
+    logger.info(
+      `Prepared ${notifications.length} reminders for students with upcoming exams`
+    );
     return notifications;
   } catch (error) {
-    logger.error('Error preparing exam reminders:', error);
+    logger.error("Error preparing exam reminders:", error);
     return [];
   }
-}; 
+};

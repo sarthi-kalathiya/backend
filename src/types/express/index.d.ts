@@ -1,4 +1,4 @@
-import { User, Student, Teacher } from '@prisma/client';
+import { User, Student, Teacher } from "@prisma/client";
 
 declare global {
   namespace Express {
@@ -12,4 +12,4 @@ declare global {
   }
 }
 
-export {}; 
+export {};

@@ -11,7 +11,7 @@ declare namespace NodeJS {
   }
 }
 
-declare module 'config' {
+declare module "config" {
   interface Config {
     app: {
       port: number;
@@ -28,4 +28,4 @@ declare module 'config' {
       origin: string;
     };
   }
-} 
+}

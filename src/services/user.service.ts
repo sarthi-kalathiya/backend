@@ -1,9 +1,15 @@
-import { PrismaClient } from '@prisma/client';
-import prisma from '../utils/prismaClient';
-import { BadRequestError, NotFoundError } from '../utils/errors';
-import { UserRole } from '../constants/user';
-import * as authService from './auth.service';
-import { TeacherProfileDto, StudentProfileDto, UserProfileUpdateDto, CreateUserDto, ProfileCompletionDto } from '../models/user.model';
+import { PrismaClient } from "@prisma/client";
+import prisma from "../utils/prismaClient";
+import { BadRequestError, NotFoundError } from "../utils/errors";
+import { UserRole } from "../constants/user";
+import * as authService from "./auth.service";
+import {
+  TeacherProfileDto,
+  StudentProfileDto,
+  UserProfileUpdateDto,
+  CreateUserDto,
+  ProfileCompletionDto,
+} from "../models/user.model";
 
 export const getAllUsers = async (filters: any = {}) => {
   const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
@@ -15,28 +21,28 @@ export const getAllUsers = async (filters: any = {}) => {
   }
 
   if (isActive !== undefined) {
-    whereCondition.isActive = isActive === 'true';
+    whereCondition.isActive = isActive === "true";
   }
 
   if (searchTerm) {
     whereCondition.OR = [
-      { firstName: { contains: searchTerm, mode: 'insensitive' } },
-      { lastName: { contains: searchTerm, mode: 'insensitive' } },
-      { email: { contains: searchTerm, mode: 'insensitive' } }
+      { firstName: { contains: searchTerm, mode: "insensitive" } },
+      { lastName: { contains: searchTerm, mode: "insensitive" } },
+      { email: { contains: searchTerm, mode: "insensitive" } },
     ];
   }
 
   // Convert page and pageSize to numbers and validate
   const pageNum = parseInt(page as string, 10);
   const pageSizeNum = parseInt(pageSize as string, 10);
-  
+
   // Calculate pagination values
   const skip = (pageNum - 1) * pageSizeNum;
   const take = pageSizeNum;
 
   // Get total count for pagination info
   const totalCount = await prisma.user.count({
-    where: whereCondition
+    where: whereCondition,
   });
 
   // Get paginated users
@@ -51,11 +57,11 @@ export const getAllUsers = async (filters: any = {}) => {
       contactNumber: true,
       isActive: true,
       createdAt: true,
-      updatedAt: true
+      updatedAt: true,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
     skip,
-    take
+    take,
   });
 
   // Return both users and pagination info
@@ -65,8 +71,8 @@ export const getAllUsers = async (filters: any = {}) => {
       total: totalCount,
       page: pageNum,
       pageSize: pageSizeNum,
-      totalPages: Math.ceil(totalCount / pageSizeNum)
-    }
+      totalPages: Math.ceil(totalCount / pageSizeNum),
+    },
   };
 };
 
@@ -95,8 +101,8 @@ export const getUserById = async (userId: string) => {
           joiningDate: true,
           completedExams: true,
           createdAt: true,
-          updatedAt: true
-        }
+          updatedAt: true,
+        },
       },
       teacher: {
         select: {
@@ -107,19 +113,19 @@ export const getUserById = async (userId: string) => {
           experience: true,
           bio: true,
           createdAt: true,
-          updatedAt: true
-        }
-      }
-    }
+          updatedAt: true,
+        },
+      },
+    },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Now get the user's subjects
   let subjects: any[] = [];
-  
+
   try {
     // If the user is a student or teacher, get their subjects
     if (user.student || user.teacher) {
@@ -128,65 +134,77 @@ export const getUserById = async (userId: string) => {
         const studentSubjects = await prisma.studentsOnSubjects.findMany({
           where: { studentId: user.student.id },
           include: {
-            subject: true
-          }
+            subject: true,
+          },
         });
-        subjects = studentSubjects.map(item => item.subject);
+        subjects = studentSubjects.map((item) => item.subject);
       } else if (user.teacher) {
         const teacherSubjects = await prisma.teachersOnSubjects.findMany({
           where: { teacherId: user.teacher.id },
           include: {
-            subject: true
-          }
+            subject: true,
+          },
         });
-        subjects = teacherSubjects.map(item => item.subject);
+        subjects = teacherSubjects.map((item) => item.subject);
       }
     }
   } catch (error) {
-    console.error('Error fetching user subjects:', error);
+    console.error("Error fetching user subjects:", error);
     // Continue with subjects as empty array
   }
 
   // Return user with subjects
   return {
     ...user,
-    subjects
+    subjects,
   };
 };
 
 export const createUser = async (userData: CreateUserDto) => {
-  const { firstName, lastName, email, password, role, contactNumber } = userData;
+  const { firstName, lastName, email, password, role, contactNumber } =
+    userData;
 
   // Validate required fields
-  if (!firstName || !lastName || !email || !password || !role || !contactNumber) {
-    throw new BadRequestError('All fields are required: firstName, lastName, email, password, role, and contact number');
+  if (
+    !firstName ||
+    !lastName ||
+    !email ||
+    !password ||
+    !role ||
+    !contactNumber
+  ) {
+    throw new BadRequestError(
+      "All fields are required: firstName, lastName, email, password, role, and contact number"
+    );
   }
 
   // Validate email format
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    throw new BadRequestError('Invalid email format');
+    throw new BadRequestError("Invalid email format");
   }
 
   // Validate contact number (assuming a simple format, adjust as needed)
   const contactRegex = /^\+?[\d\s-]{10,}$/;
   if (!contactRegex.test(contactNumber)) {
-    throw new BadRequestError('Invalid contact number format');
+    throw new BadRequestError("Invalid contact number format");
   }
 
   // Validate role
   const validRoles = [UserRole.ADMIN, UserRole.TEACHER, UserRole.STUDENT];
   if (!validRoles.includes(role)) {
-    throw new BadRequestError('Invalid role. Must be one of: ADMIN, TEACHER, STUDENT');
+    throw new BadRequestError(
+      "Invalid role. Must be one of: ADMIN, TEACHER, STUDENT"
+    );
   }
 
   // Check if email already exists
   const existingUser = await prisma.user.findUnique({
-    where: { email }
+    where: { email },
   });
 
   if (existingUser) {
-    throw new BadRequestError('Email already in use');
+    throw new BadRequestError("Email already in use");
   }
 
   // Hash password
@@ -203,8 +221,8 @@ export const createUser = async (userData: CreateUserDto) => {
         password: hashedPassword,
         role,
         contactNumber,
-        profileCompleted: role === UserRole.ADMIN // Only admin profiles are complete by default
-      }
+        profileCompleted: role === UserRole.ADMIN, // Only admin profiles are complete by default
+      },
     });
 
     // If user is a teacher or student, create a temporary profile
@@ -214,18 +232,18 @@ export const createUser = async (userData: CreateUserDto) => {
           userId: user.id,
           experience: 0,
           qualification: "", // Empty string for temporary profile
-          expertise: "",    // Empty string for temporary profile
-          bio: ""          // Empty string for temporary profile
-        }
+          expertise: "", // Empty string for temporary profile
+          bio: "", // Empty string for temporary profile
+        },
       });
     } else if (role === UserRole.STUDENT) {
       await prismaClient.student.create({
         data: {
           userId: user.id,
-          rollNumber: "",  // Empty string for temporary profile
-          grade: "",      // Empty string for temporary profile
-          parentContactNumber: "" // Empty string for temporary profile
-        }
+          rollNumber: "", // Empty string for temporary profile
+          grade: "", // Empty string for temporary profile
+          parentContactNumber: "", // Empty string for temporary profile
+        },
       });
     }
 
@@ -243,7 +261,7 @@ export const createUser = async (userData: CreateUserDto) => {
     isActive: result.isActive,
     profileCompleted: result.profileCompleted,
     createdAt: result.createdAt,
-    updatedAt: result.updatedAt
+    updatedAt: result.updatedAt,
   };
 };
 
@@ -252,21 +270,21 @@ export const updateUser = async (userId: string, userData: any) => {
 
   // Check if user exists
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Check if email is unique if changing
   if (email && email !== user.email) {
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
     });
 
     if (existingUser) {
-      throw new BadRequestError('Email already in use');
+      throw new BadRequestError("Email already in use");
     }
   }
 
@@ -277,7 +295,7 @@ export const updateUser = async (userId: string, userData: any) => {
       firstName,
       lastName,
       email,
-      contactNumber
+      contactNumber,
     },
     select: {
       id: true,
@@ -288,8 +306,8 @@ export const updateUser = async (userId: string, userData: any) => {
       contactNumber: true,
       isActive: true,
       createdAt: true,
-      updatedAt: true
-    }
+      updatedAt: true,
+    },
   });
 
   return updatedUser;
@@ -300,13 +318,13 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      student: true, 
-      teacher: true
-    }
+      student: true,
+      teacher: true,
+    },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Update user status
@@ -324,21 +342,24 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
       student: true,
       teacher: true,
       createdAt: true,
-      updatedAt: true
-    }
+      updatedAt: true,
+    },
   });
 
   return updatedUser;
 };
 
-export const resetUserPassword = async (userId: string, newPassword: string) => {
+export const resetUserPassword = async (
+  userId: string,
+  newPassword: string
+) => {
   // Check if user exists
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Hash new password
@@ -347,10 +368,10 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
   // Update user password
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashedPassword }
+    data: { password: hashedPassword },
   });
 
-  return { message: 'Password reset successfully' };
+  return { message: "Password reset successfully" };
 };
 
 // export const completeUserProfile = async (userId: string, profileData: ProfileCompletionDto) => {
@@ -383,7 +404,7 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
 //     }
 
 //     const { rollNumber, grade, parentContactNumber } = profileData;
-    
+
 //     // Validate student-specific fields
 //     if (!rollNumber || !grade || !parentContactNumber) {
 //       throw new BadRequestError('All fields are required: rollNumber, grade, and parentContactNumber');
@@ -410,7 +431,7 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
 //       // Update user
 //       const userUpdate = await tx.user.update({
 //         where: { id: userId },
-//         data: { 
+//         data: {
 //           contactNumber,
 //           profileCompleted: true
 //         }
@@ -460,7 +481,7 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
 //       // Update user
 //       const userUpdate = await tx.user.update({
 //         where: { id: userId },
-//         data: { 
+//         data: {
 //           contactNumber,
 //           profileCompleted: true
 //         }
@@ -469,11 +490,11 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
 //       // Update teacher
 //       const teacherUpdate = await tx.teacher.update({
 //         where: { userId },
-//         data: { 
-//           qualification, 
-//           expertise, 
+//         data: {
+//           qualification,
+//           expertise,
 //           experience: experience ? parseInt(experience.toString()) : 0,
-//           bio 
+//           bio
 //         }
 //       });
 
@@ -503,20 +524,27 @@ export const resetUserPassword = async (userId: string, newPassword: string) => 
 //   throw new BadRequestError('Invalid user role');
 // };
 
-export const changeUserPassword = async (userId: string, currentPassword: string, newPassword: string) => {
+export const changeUserPassword = async (
+  userId: string,
+  currentPassword: string,
+  newPassword: string
+) => {
   // Check if user exists
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Verify current password
-  const isPasswordValid = await authService.comparePassword(currentPassword, user.password);
+  const isPasswordValid = await authService.comparePassword(
+    currentPassword,
+    user.password
+  );
   if (!isPasswordValid) {
-    throw new BadRequestError('Current password is incorrect');
+    throw new BadRequestError("Current password is incorrect");
   }
 
   // Hash new password
@@ -525,38 +553,43 @@ export const changeUserPassword = async (userId: string, currentPassword: string
   // Update user password
   await prisma.user.update({
     where: { id: userId },
-    data: { password: hashedPassword }
+    data: { password: hashedPassword },
   });
 
-  return { message: 'Password changed successfully' };
+  return { message: "Password changed successfully" };
 };
 
 // Create a teacher profile for a user
-export const createTeacherProfile = async (userId: string, teacherData: TeacherProfileDto) => {
+export const createTeacherProfile = async (
+  userId: string,
+  teacherData: TeacherProfileDto
+) => {
   // Validate required fields
   const { qualification, expertise, experience, bio } = teacherData;
-  
+
   if (!qualification || !expertise || bio === undefined) {
-    throw new BadRequestError('All fields are required: qualification, expertise, and bio');
+    throw new BadRequestError(
+      "All fields are required: qualification, expertise, and bio"
+    );
   }
 
   // Check if user exists and is a teacher
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { teacher: true }
+    include: { teacher: true },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   if (user.role !== UserRole.TEACHER) {
-    throw new BadRequestError('User is not a teacher');
+    throw new BadRequestError("User is not a teacher");
   }
 
   // Check if the teacher profile exists and is not a temporary one
   if (user.teacher && user.profileCompleted) {
-    throw new BadRequestError('Teacher profile already exists and is complete');
+    throw new BadRequestError("Teacher profile already exists and is complete");
   }
 
   // Update the existing teacher profile or create a new one
@@ -569,14 +602,14 @@ export const createTeacherProfile = async (userId: string, teacherData: TeacherP
         qualification,
         expertise,
         experience: experience || 0,
-        bio
-      }
+        bio,
+      },
     });
-    
+
     // Update the user's profileCompleted status
     await prisma.user.update({
       where: { id: userId },
-      data: { profileCompleted: true }
+      data: { profileCompleted: true },
     });
   } else {
     // Create a new profile (shouldn't happen with our new implementation)
@@ -586,14 +619,14 @@ export const createTeacherProfile = async (userId: string, teacherData: TeacherP
         qualification,
         expertise,
         experience: experience || 0,
-        bio
-      }
+        bio,
+      },
     });
-    
+
     // Update the user's profileCompleted status
     await prisma.user.update({
       where: { id: userId },
-      data: { profileCompleted: true }
+      data: { profileCompleted: true },
     });
   }
 
@@ -610,79 +643,92 @@ export const createTeacherProfile = async (userId: string, teacherData: TeacherP
       isActive: true,
       profileCompleted: true,
       createdAt: true,
-      updatedAt: true
-    }
+      updatedAt: true,
+    },
   });
 
   // Return the user with teacher profile
   return {
     ...updatedUser,
-    teacher
+    teacher,
   };
 };
 
 // Create a student profile for a user
-export const createStudentProfile = async (userId: string, studentData: StudentProfileDto) => {
+export const createStudentProfile = async (
+  userId: string,
+  studentData: StudentProfileDto
+) => {
   // Validate required fields
   const { rollNumber, grade, parentContactNumber } = studentData;
 
   if (!rollNumber || !grade || !parentContactNumber) {
-    throw new BadRequestError('All fields are required: rollNumber, grade, and parentContactNumber');
+    throw new BadRequestError(
+      "All fields are required: rollNumber, grade, and parentContactNumber"
+    );
   }
 
   // Validate roll number format (alphanumeric with optional hyphens)
   const rollNumberRegex = /^[A-Za-z0-9-]+$/;
   if (!rollNumberRegex.test(rollNumber)) {
-    throw new BadRequestError('Invalid roll number format. Only alphanumeric characters and hyphens are allowed');
+    throw new BadRequestError(
+      "Invalid roll number format. Only alphanumeric characters and hyphens are allowed"
+    );
   }
 
   // Validate grade format (alphanumeric with optional spaces and hyphens)
   const gradeRegex = /^[A-Za-z0-9\s-]+$/;
   if (!gradeRegex.test(grade)) {
-    throw new BadRequestError('Invalid grade format. Only alphanumeric characters, spaces, and hyphens are allowed');
+    throw new BadRequestError(
+      "Invalid grade format. Only alphanumeric characters, spaces, and hyphens are allowed"
+    );
   }
 
   // Validate parent contact number (must be at least 10 digits)
   const contactRegex = /^\+?[\d\s-]{10,}$/;
   if (!contactRegex.test(parentContactNumber)) {
-    throw new BadRequestError('Invalid parent contact number format. Must be at least 10 digits');
+    throw new BadRequestError(
+      "Invalid parent contact number format. Must be at least 10 digits"
+    );
   }
 
   // Check if user exists and is a student
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { student: true }
+    include: { student: true },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   if (user.role !== UserRole.STUDENT) {
-    throw new BadRequestError('User is not a student');
+    throw new BadRequestError("User is not a student");
   }
 
   // Check if the student profile exists and is not a temporary one
   if (user.student && user.profileCompleted) {
-    throw new BadRequestError('Student profile already exists and is complete');
+    throw new BadRequestError("Student profile already exists and is complete");
   }
 
   // Check if roll number is unique (except for this user's temporary profile)
   const existingStudent = await prisma.student.findFirst({
-    where: { 
+    where: {
       rollNumber,
-      NOT: { userId }
-    }
+      NOT: { userId },
+    },
   });
 
   if (existingStudent) {
-    throw new BadRequestError('Roll number is already in use by another student');
+    throw new BadRequestError(
+      "Roll number is already in use by another student"
+    );
   }
 
   try {
     // Update the existing student profile or create a new one
     let student;
-    
+
     if (user.student) {
       // Update the existing temporary profile
       student = await prisma.student.update({
@@ -690,14 +736,14 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
         data: {
           rollNumber,
           grade,
-          parentContactNumber
-        }
+          parentContactNumber,
+        },
       });
-      
+
       // Update the user's profileCompleted status
       await prisma.user.update({
         where: { id: userId },
-        data: { profileCompleted: true }
+        data: { profileCompleted: true },
       });
     } else {
       // Create a new profile (shouldn't happen with our new implementation)
@@ -706,14 +752,14 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
           userId,
           rollNumber,
           grade,
-          parentContactNumber
-        }
+          parentContactNumber,
+        },
       });
-      
+
       // Update the user's profileCompleted status
       await prisma.user.update({
         where: { id: userId },
-        data: { profileCompleted: true }
+        data: { profileCompleted: true },
       });
     }
 
@@ -730,13 +776,13 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
         isActive: true,
         profileCompleted: true,
         createdAt: true,
-        updatedAt: true
-      }
+        updatedAt: true,
+      },
     });
 
     return {
       ...updatedUser,
-      student
+      student,
     };
   } catch (error) {
     if (error instanceof Error) {
@@ -748,7 +794,6 @@ export const createStudentProfile = async (userId: string, studentData: StudentP
 
 // Get user with profile details
 export const getUserWithProfile = async (userId: string) => {
-  
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -771,8 +816,8 @@ export const getUserWithProfile = async (userId: string) => {
           joiningDate: true,
           completedExams: true,
           createdAt: true,
-          updatedAt: true
-        }
+          updatedAt: true,
+        },
       },
       teacher: {
         select: {
@@ -783,32 +828,34 @@ export const getUserWithProfile = async (userId: string) => {
           experience: true,
           bio: true,
           createdAt: true,
-          updatedAt: true
-        }
-      }
-    }
+          updatedAt: true,
+        },
+      },
+    },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   return user;
 };
 
 // Update user profile
-export const updateUserProfile = async (userId: string, profileData: UserProfileUpdateDto) => {
-  
+export const updateUserProfile = async (
+  userId: string,
+  profileData: UserProfileUpdateDto
+) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       student: true,
-      teacher: true
-    }
+      teacher: true,
+    },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Update base user information
@@ -817,16 +864,21 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
     data: {
       firstName: profileData.firstName,
       lastName: profileData.lastName,
-      contactNumber: profileData.contactNumber
-    }
+      contactNumber: profileData.contactNumber,
+    },
   });
 
   // If teacher, update teacher profile
   if (user.role === UserRole.TEACHER && profileData.teacherProfile) {
-    console.log(`Updating teacher profile for userId: ${userId} with:`, profileData.teacherProfile);
-    
+    console.log(
+      `Updating teacher profile for userId: ${userId} with:`,
+      profileData.teacherProfile
+    );
+
     if (!user.teacher) {
-      console.warn(`Teacher record not found. Creating new teacher profile for userId: ${userId}`);
+      console.warn(
+        `Teacher record not found. Creating new teacher profile for userId: ${userId}`
+      );
       // Create teacher profile if it doesn't exist
       await prisma.teacher.create({
         data: {
@@ -834,8 +886,8 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
           qualification: profileData.teacherProfile.qualification,
           expertise: profileData.teacherProfile.expertise,
           experience: profileData.teacherProfile.experience,
-          bio: profileData.teacherProfile.bio
-        }
+          bio: profileData.teacherProfile.bio,
+        },
       });
     } else {
       // Update existing teacher profile
@@ -845,21 +897,25 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
           qualification: profileData.teacherProfile.qualification,
           expertise: profileData.teacherProfile.expertise,
           experience: profileData.teacherProfile.experience,
-          bio: profileData.teacherProfile.bio
-        }
+          bio: profileData.teacherProfile.bio,
+        },
       });
     }
   }
 
   // If student, update student profile
-  if (user.role === UserRole.STUDENT && profileData.studentProfile && user.student) {
+  if (
+    user.role === UserRole.STUDENT &&
+    profileData.studentProfile &&
+    user.student
+  ) {
     await prisma.student.update({
       where: { userId },
       data: {
         grade: profileData.studentProfile.grade,
         rollNumber: profileData.studentProfile.rollNumber,
-        parentContactNumber: profileData.studentProfile.parentContactNumber
-      }
+        parentContactNumber: profileData.studentProfile.parentContactNumber,
+      },
     });
   }
 
@@ -870,17 +926,17 @@ export const updateUserProfile = async (userId: string, profileData: UserProfile
 // Delete a user
 export const deleteUser = async (userId: string) => {
   const user = await prisma.user.findUnique({
-    where: { id: userId }
+    where: { id: userId },
   });
 
   if (!user) {
-    throw new NotFoundError('User not found');
+    throw new NotFoundError("User not found");
   }
 
   // Instead of hard delete, perform a soft delete by deactivating the user
   await prisma.user.update({
     where: { id: userId },
-    data: { isActive: false }
+    data: { isActive: false },
   });
 
   return { success: true };

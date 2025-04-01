@@ -49,4 +49,4 @@ export interface TeachersOnSubjects {
 
 export interface SubjectAssignmentDto {
   subjectIds: string[];
-} 
+}
