@@ -159,7 +159,7 @@ export const autoSubmitExpiredExams = async () => {
 /**
  * Checks and enforces exam time limits
  * Returns the time remaining in seconds, or 0 if time is up
- */
+*/
 export const checkExamTimeLimit = async (studentExamId: string) => {
   const studentExam = await prisma.studentExam.findUnique({
     where: { id: studentExamId },

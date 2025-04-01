@@ -135,11 +135,11 @@ export interface UserProfileUpdateDto {
   studentProfile?: Partial<StudentProfileDto>;
 }
 
-export interface CompleteProfileDto {
-  name?: string;
-  contactNumber?: string;
-  experience?: number; // For teachers
-}
+// export interface CompleteProfileDto {
+//   name?: string;
+//   contactNumber?: string;
+//   experience?: number; // For teachers
+// }
 
 // New interface for profile completion
 export interface ProfileCompletionDto {
