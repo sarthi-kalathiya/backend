@@ -3,8 +3,6 @@ import { PrismaClient } from "@prisma/client";
 import * as studentExamController from "../controllers/studentExam.controller";
 import { authenticateStudent } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
-import { checkExamTimeLimit } from "../utils/examUtils";
-import { successResponse, warningResponse } from "../utils/response";
 import {
   examResponsesSchema,
   cheatEventSchema,

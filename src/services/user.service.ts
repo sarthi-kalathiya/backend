@@ -8,7 +8,6 @@ import {
   StudentProfileDto,
   UserProfileUpdateDto,
   CreateUserDto,
-  ProfileCompletionDto,
 } from "../models/user.model";
 
 export const getAllUsers = async (filters: any = {}) => {

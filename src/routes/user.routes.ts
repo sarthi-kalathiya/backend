@@ -5,7 +5,6 @@ import {
   authenticateAdmin,
   authenticateTeacher,
   authenticateStudent,
-  requireProfileCompletion,
 } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
@@ -17,7 +16,6 @@ import {
   teacherProfileSchema,
   studentProfileSchema,
   userProfileUpdateSchema,
-  profileCompletionSchema,
 } from "../validations/user.validation";
 
 const router = Router();
@@ -25,11 +23,6 @@ const router = Router();
 // Profile status routes - accessible after authentication without completed profile
 router.get("/profile-status", authenticate, userController.getProfileStatus);
 
-// PREFERRED METHOD: Complete user profile with the new unified approach
-// router.post('/complete-profile', authenticate, validateFields(profileCompletionSchema), userController.completeProfile);
-
-// LEGACY ROUTES: Old profile setup routes - kept for backward compatibility
-// These still work but are not the preferred approach
 router.post(
   "/teacher-profile",
   authenticateTeacher,

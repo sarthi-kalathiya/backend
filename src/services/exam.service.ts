@@ -9,7 +9,6 @@ import {
   CreateQuestionDto,
   UpdateQuestionDto,
   StudentExam,
-  Question,
 } from "../models/exam.model";
 import { PrismaClient } from "@prisma/client";
 
