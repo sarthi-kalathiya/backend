@@ -15,7 +15,11 @@ subject.modal to use j nai thatu
 validated:-
 config - all done
 constants - all done
+controllers
 middlewares - all done
 models - all done
-validations - all done
+routes
+services
+types - all done
 utils - all done
+validations - all done
