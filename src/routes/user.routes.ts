@@ -5,7 +5,7 @@ import {
   authenticateAdmin,
   authenticateTeacher,
   authenticateStudent,
-  requireProfileCompletion
+  requireProfileCompletion,
 } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
@@ -23,12 +23,15 @@ const router = Router();
 
 router.get("/profile-status", authenticate, userController.getProfileStatus);
 
+// Teacher profile routes - require teacher authentication
 router.post(
   "/teacher-profile",
   authenticateTeacher,
   validateFields(teacherProfileSchema),
   userController.createTeacherProfile
 );
+
+// Student profile routes - require student authentication
 router.post(
   "/student-profile",
   authenticateStudent,
@@ -37,7 +40,12 @@ router.post(
 );
 
 // Profile routes - require authentication
-router.get("/profile", authenticate, requireProfileCompletion, userController.getUserProfile);
+router.get(
+  "/profile",
+  authenticate,
+  requireProfileCompletion,
+  userController.getUserProfile
+);
 router.put(
   "/profile",
   authenticate,
@@ -56,35 +64,47 @@ router.patch(
 
 // Admin user management routes - with admin authentication
 router.get("/admin/users", authenticateAdmin, userController.getAllUsers);
+
+// Get user by ID - require admin authentication
 router.get(
   "/admin/users/:userId",
   authenticateAdmin,
   userController.getUserById
 );
+
+// Create user - require admin authentication
 router.post(
   "/admin/users",
   authenticateAdmin,
   validateFields(createUserSchema),
   userController.createUser
 );
+
+// Update user - require admin authentication
 router.put(
   "/admin/users/:userId",
   authenticateAdmin,
   validateFields(updateUserSchema),
   userController.updateUser
 );
+
+// Update user status - require admin authentication
 router.patch(
   "/admin/users/:userId/status",
   authenticateAdmin,
   validateFields(updateUserStatusSchema),
   userController.updateUserStatus
 );
+
+// Reset user password - require admin authentication
 router.patch(
   "/admin/users/:userId/reset-password",
   authenticateAdmin,
   validateFields(resetPasswordSchema),
   userController.resetPassword
 );
+
+// Delete user - require admin authentication 
 router.delete(
   "/admin/users/:userId",
   authenticateAdmin,

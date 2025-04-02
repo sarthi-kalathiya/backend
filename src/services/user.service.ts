@@ -10,6 +10,7 @@ import {
   CreateUserDto,
 } from "../models/user.model";
 
+// Get all users
 export const getAllUsers = async (filters: any = {}) => {
   const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
 
@@ -75,6 +76,7 @@ export const getAllUsers = async (filters: any = {}) => {
   };
 };
 
+// Get user by ID
 export const getUserById = async (userId: string) => {
   // First get the user with basic profile info
   const user = await prisma.user.findUnique({
@@ -126,6 +128,7 @@ export const getUserById = async (userId: string) => {
   };
 };
 
+// Create user
 export const createUser = async (userData: CreateUserDto) => {
   const { firstName, lastName, email, password, role, contactNumber } =
     userData;
@@ -143,44 +146,46 @@ export const createUser = async (userData: CreateUserDto) => {
   const hashedPassword = await authService.hashPassword(password);
 
   // Create user transaction
-  const result = await prisma.$transaction(async (prismaClient: PrismaClient) => {
-    // Create user with profileCompleted field
-    const user = await prismaClient.user.create({
-      data: {
-        firstName,
-        lastName,
-        email,
-        password: hashedPassword,
-        role,
-        contactNumber,
-        profileCompleted: role === UserRole.ADMIN, // Only admin profiles are complete by default
-      },
-    });
+  const result = await prisma.$transaction(
+    async (prismaClient: PrismaClient) => {
+      // Create user with profileCompleted field
+      const user = await prismaClient.user.create({
+        data: {
+          firstName,
+          lastName,
+          email,
+          password: hashedPassword,
+          role,
+          contactNumber,
+          profileCompleted: role === UserRole.ADMIN, // Only admin profiles are complete by default
+        },
+      });
 
-    // If user is a teacher or student, create a temporary profile
-    if (role === UserRole.TEACHER) {
-      await prismaClient.teacher.create({
-        data: {
-          userId: user.id,
-          experience: 0,
-          qualification: "", // Empty string for temporary profile
-          expertise: "", // Empty string for temporary profile
-          bio: "", // Empty string for temporary profile
-        },
-      });
-    } else if (role === UserRole.STUDENT) {
-      await prismaClient.student.create({
-        data: {
-          userId: user.id,
-          rollNumber: "", // Empty string for temporary profile
-          grade: "", // Empty string for temporary profile
-          parentContactNumber: "", // Empty string for temporary profile
-        },
-      });
+      // If user is a teacher or student, create a temporary profile
+      if (role === UserRole.TEACHER) {
+        await prismaClient.teacher.create({
+          data: {
+            userId: user.id,
+            experience: 0,
+            qualification: "", // Empty string for temporary profile
+            expertise: "", // Empty string for temporary profile
+            bio: "", // Empty string for temporary profile
+          },
+        });
+      } else if (role === UserRole.STUDENT) {
+        await prismaClient.student.create({
+          data: {
+            userId: user.id,
+            rollNumber: "", // Empty string for temporary profile
+            grade: "", // Empty string for temporary profile
+            parentContactNumber: "", // Empty string for temporary profile
+          },
+        });
+      }
+
+      return user;
     }
-
-    return user;
-  });
+  );
 
   return {
     id: result.id,
@@ -196,6 +201,7 @@ export const createUser = async (userData: CreateUserDto) => {
   };
 };
 
+// Update user
 export const updateUser = async (userId: string, userData: any) => {
   const { firstName, lastName, email, contactNumber } = userData;
 
@@ -244,6 +250,7 @@ export const updateUser = async (userId: string, userData: any) => {
   return updatedUser;
 };
 
+// Update user status
 export const updateUserStatus = async (userId: string, isActive: boolean) => {
   // Check if user exists
   const user = await prisma.user.findUnique({
@@ -280,6 +287,7 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
   return updatedUser;
 };
 
+// Reset user password
 export const resetUserPassword = async (
   userId: string,
   newPassword: string
@@ -305,6 +313,7 @@ export const resetUserPassword = async (
   return { message: "Password reset successfully" };
 };
 
+// Change user password
 export const changeUserPassword = async (
   userId: string,
   currentPassword: string,
@@ -507,8 +516,6 @@ export const createStudentProfile = async (
 
 // Get user with profile details
 export const getUserWithProfile = async (userId: string) => {
-
-
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -584,49 +591,58 @@ export const updateUserProfile = async (
   });
 
   // If teacher, update teacher profile
-  if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
-    // Update existing teacher profile
-    await prisma.teacher.update({
-      where: { userId },
-      data: {
-        qualification: profileData.teacherProfile.qualification,
-        expertise: profileData.teacherProfile.expertise,
-        experience: profileData.teacherProfile.experience,
-        bio: profileData.teacherProfile.bio,
-      },
-    });
-  if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
-    // Update existing teacher profile
-    await prisma.teacher.update({
-      where: { userId },
-      data: {
-        qualification: profileData.teacherProfile.qualification,
-        expertise: profileData.teacherProfile.expertise,
-        experience: profileData.teacherProfile.experience,
-        bio: profileData.teacherProfile.bio,
-      },
-    });
-  }
-
-  // If student, update student profile
   if (
-    user.role === UserRole.STUDENT &&
-    profileData.studentProfile &&
-    user.student
+    user.role === UserRole.TEACHER &&
+    profileData.teacherProfile &&
+    user.teacher
   ) {
-    await prisma.student.update({
+    // Update existing teacher profile
+    await prisma.teacher.update({
       where: { userId },
       data: {
-        grade: profileData.studentProfile.grade,
-        rollNumber: profileData.studentProfile.rollNumber,
-        parentContactNumber: profileData.studentProfile.parentContactNumber,
+        qualification: profileData.teacherProfile.qualification,
+        expertise: profileData.teacherProfile.expertise,
+        experience: profileData.teacherProfile.experience,
+        bio: profileData.teacherProfile.bio,
       },
     });
-  }
+    if (
+      user.role === UserRole.TEACHER &&
+      profileData.teacherProfile &&
+      user.teacher
+    ) {
+      // Update existing teacher profile
+      await prisma.teacher.update({
+        where: { userId },
+        data: {
+          qualification: profileData.teacherProfile.qualification,
+          expertise: profileData.teacherProfile.expertise,
+          experience: profileData.teacherProfile.experience,
+          bio: profileData.teacherProfile.bio,
+        },
+      });
+    }
 
-  // Get updated user with profile
-  return getUserWithProfile(userId);
-}};
+    // If student, update student profile
+    if (
+      user.role === UserRole.STUDENT &&
+      profileData.studentProfile &&
+      user.student
+    ) {
+      await prisma.student.update({
+        where: { userId },
+        data: {
+          grade: profileData.studentProfile.grade,
+          rollNumber: profileData.studentProfile.rollNumber,
+          parentContactNumber: profileData.studentProfile.parentContactNumber,
+        },
+      });
+    }
+
+    // Get updated user with profile
+    return getUserWithProfile(userId);
+  }
+};
 
 // Delete a user
 export const deleteUser = async (userId: string) => {

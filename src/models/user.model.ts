@@ -89,7 +89,6 @@ export interface Teacher {
   updatedAt: Date;
 }
 
-
 export interface UpdateUserDto {
   firstName?: string;
   lastName?: string;
@@ -130,16 +129,12 @@ export interface StudentResponseDto {
   updatedAt: Date;
 }
 
-
-
 // DTO for updating student profile
 export interface UpdateStudentProfileDto {
   rollNumber?: string;
   grade?: string;
   parentContactNumber?: string;
 }
-
-
 
 // export interface CompleteProfileDto {
 //   name?: string;

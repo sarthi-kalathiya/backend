@@ -14,8 +14,12 @@ import {
   TokenPayload,
   TokenResponse,
 } from "../models/auth.model";
-import { UserResponseDto, UserWithProfileResponseDto } from "../models/user.model";
+import {
+  UserResponseDto,
+  UserWithProfileResponseDto,
+} from "../models/user.model";
 
+// Generate token
 export const generateToken = (userId: string, role: UserRole): string => {
   return jwt.sign(
     { id: userId, role } as TokenPayload,
@@ -24,6 +28,7 @@ export const generateToken = (userId: string, role: UserRole): string => {
   );
 };
 
+// Generate refresh token
 export const generateRefreshToken = (
   userId: string,
   role: UserRole
@@ -35,6 +40,7 @@ export const generateRefreshToken = (
   );
 };
 
+// Verify refresh token
 export const verifyRefreshToken = (token: string): TokenPayload => {
   try {
     const decoded = jwt.verify(
@@ -47,11 +53,13 @@ export const verifyRefreshToken = (token: string): TokenPayload => {
   }
 };
 
+// Hash password
 export const hashPassword = async (password: string): Promise<string> => {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
 };
 
+// Compare password
 export const comparePassword = async (
   password: string,
   hashedPassword: string
@@ -59,6 +67,7 @@ export const comparePassword = async (
   return bcrypt.compare(password, hashedPassword);
 };
 
+// Admin signup
 export const adminSignup = async (
   adminData: AdminSignupDto
 ): Promise<{ user: UserResponseDto } & TokenResponse> => {
@@ -111,6 +120,7 @@ export const adminSignup = async (
   };
 };
 
+// User signin
 export const signin = async (
   credentials: LoginDto
 ): Promise<{ user: UserWithProfileResponseDto } & TokenResponse> => {
@@ -164,6 +174,7 @@ export const signin = async (
   };
 };
 
+// Refresh auth token
 export const refreshAuthToken = async (
   refreshToken: string
 ): Promise<TokenResponse> => {

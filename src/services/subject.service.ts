@@ -1,6 +1,7 @@
 import prisma from "../utils/prismaClient";
 import { BadRequestError, NotFoundError } from "../utils/errors";
 
+// Get all subjects
 type SubjectWithRelations = {
   subject: {
     id: string;
@@ -11,6 +12,7 @@ type SubjectWithRelations = {
   };
 };
 
+// Get all subjects
 export const getAllSubjects = async (
   includeInactive = false,
   searchTerm?: string,
@@ -64,6 +66,7 @@ export const getAllSubjects = async (
   };
 };
 
+// Get subject by ID
 export const getSubjectById = async (subjectId: string) => {
   const subject = await prisma.subject.findUnique({
     where: { id: subjectId },
@@ -76,6 +79,7 @@ export const getSubjectById = async (subjectId: string) => {
   return subject;
 };
 
+// Create subject
 export const createSubject = async (
   name: string,
   code: string,
@@ -124,6 +128,7 @@ export const createSubject = async (
   return subject;
 };
 
+// Update subject
 export const updateSubject = async (
   subjectId: string,
   name: string,
@@ -179,7 +184,7 @@ export const updateSubject = async (
   if (description !== undefined) {
     updateData.description = description;
   }
-  
+
   if (isActive !== undefined) {
     updateData.isActive = isActive;
   }
@@ -191,6 +196,7 @@ export const updateSubject = async (
   return updatedSubject;
 };
 
+// Update subject status
 export const updateSubjectStatus = async (
   subjectId: string,
   isActive: boolean
@@ -212,6 +218,7 @@ export const updateSubjectStatus = async (
   return updatedSubject;
 };
 
+// Get user subjects
 export const getUserSubjects = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -248,6 +255,7 @@ export const getUserSubjects = async (userId: string) => {
   return [];
 };
 
+// Assign subjects to user
 export const assignSubjectsToUser = async (
   userId: string,
   subjectIds: string[]
@@ -274,10 +282,10 @@ export const assignSubjectsToUser = async (
   }
 
   const isStudent = !!user.student;
-  const modelName = isStudent ? 'studentsOnSubjects' : 'teachersOnSubjects';
-  const userIdField = isStudent ? 'studentId' : 'teacherId';
+  const modelName = isStudent ? "studentsOnSubjects" : "teachersOnSubjects";
+  const userIdField = isStudent ? "studentId" : "teacherId";
   const userRoleId = isStudent ? user.student!.id : user.teacher!.id;
-  const userType = isStudent ? 'student' : 'teacher';
+  const userType = isStudent ? "student" : "teacher";
 
   // Get existing assignments to check for duplicates
   const existingAssignments = await prisma[modelName].findMany({
@@ -291,7 +299,8 @@ export const assignSubjectsToUser = async (
   const newSubjectIds = subjectIds.filter(
     (subjectId) =>
       !existingAssignments.some(
-        (assignment: { subjectId: string }) => assignment.subjectId === subjectId
+        (assignment: { subjectId: string }) =>
+          assignment.subjectId === subjectId
       )
   );
 
@@ -324,6 +333,7 @@ export const assignSubjectsToUser = async (
   return userSubjects.map((item: SubjectWithRelations) => item.subject);
 };
 
+// Assign subject to user
 export const assignSubjectToUser = async (
   userId: string,
   subjectId: string
@@ -420,6 +430,7 @@ export const assignSubjectToUser = async (
   );
 };
 
+// Delete subject
 export const deleteSubject = async (subjectId: string) => {
   // Check if subject exists
   const subject = await prisma.subject.findUnique({

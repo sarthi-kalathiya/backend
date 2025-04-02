@@ -25,11 +25,8 @@ utils - all done
 validations - all done
 
 
+once roll is assigned there should be no way back to change it
 
 check profile status ne eliminate kri ne frontend
-signin no route mane full object aapvo joi
-user/profile - (get, put) - route chhe e completed na hoy toy response aape chhe
 
 
-
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjQwOWMzOTM5LTM2ZDUtNDM1OS05NjkxLTBiZTQ5Yjk2NzJiZiIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzQzNTg4NjI3LCJleHAiOjE3NDM2NzUwMjd9.oVJaxGOBTXUv_KY79UJg9OjwCeMCa35rhGuW8WEjxeA

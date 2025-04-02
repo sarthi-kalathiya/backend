@@ -14,6 +14,8 @@ const router = Router();
 
 // Public subject routes
 router.get("/", authenticateAdmin, subjectController.getAllSubjects);
+
+// Get subject by ID
 router.get("/:subjectId", subjectController.getSubjectById);
 
 // Admin subject management routes
@@ -24,6 +26,7 @@ router.post(
   subjectController.createSubject
 );
 
+// Update subject
 router.put(
   "/admin/subjects/:subjectId",
   authenticateAdmin,
@@ -31,6 +34,7 @@ router.put(
   subjectController.updateSubject
 );
 
+// Update subject status
 router.patch(
   "/admin/subjects/:subjectId/status",
   authenticateAdmin,
@@ -38,6 +42,7 @@ router.patch(
   subjectController.updateSubjectStatus
 );
 
+// Delete subject
 router.delete(
   "/admin/subjects/:subjectId",
   authenticateAdmin,

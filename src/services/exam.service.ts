@@ -59,6 +59,7 @@ export const getTeacherExams = async (
   };
 };
 
+// Get exam by ID
 export const getExamById = async (examId: string, teacherId?: string) => {
   const exam = await prisma.exam.findUnique({
     where: {
@@ -105,6 +106,7 @@ export const getExamById = async (examId: string, teacherId?: string) => {
   return exam;
 };
 
+// Create exam
 export const createExam = async (teacherId: string, examData: any) => {
   const {
     name,
@@ -163,6 +165,7 @@ export const createExam = async (teacherId: string, examData: any) => {
   return exam;
 };
 
+// Update exam
 export const updateExam = async (
   examId: string,
   teacherId: string,
@@ -295,6 +298,7 @@ export const updateExam = async (
   };
 };
 
+// Update exam status
 export const updateExamStatus = async (
   examId: string,
   teacherId: string,
@@ -337,7 +341,7 @@ export const updateExamStatus = async (
   return updatedExam;
 };
 
-// Question management
+// Get exam questions
 export const getExamQuestions = async (examId: string, teacherId: string) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
@@ -559,6 +563,7 @@ export const addQuestion = async (
   };
 };
 
+// Update question
 export const updateQuestion = async (
   examId: string,
   questionId: string,
@@ -729,6 +734,7 @@ export const updateQuestion = async (
   };
 };
 
+// Deactivate question
 export const deactivateQuestion = async (
   examId: string,
   questionId: string,

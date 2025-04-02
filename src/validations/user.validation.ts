@@ -107,7 +107,7 @@ export const studentProfileSchema = {
   parentContactNumber: validators.compose(
     validators.required,
     validators.string,
-    validators.phone,
+    validators.phone
   ),
 };
 

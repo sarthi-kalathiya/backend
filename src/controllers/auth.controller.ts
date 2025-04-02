@@ -8,6 +8,7 @@ import {
   RefreshTokenDto,
 } from "../models/auth.model";
 
+// Admin signup
 export const adminSignup = async (
   req: Request,
   res: Response,
@@ -22,6 +23,7 @@ export const adminSignup = async (
   }
 };
 
+// User signin
 export const userSignin = async (
   req: Request,
   res: Response,
@@ -29,7 +31,7 @@ export const userSignin = async (
 ) => {
   try {
     const credentials: LoginDto = req.body;
-    
+
     const result = await authService.signin(credentials);
     return successResponse(res, result, "User logged in successfully");
   } catch (error) {
@@ -37,6 +39,7 @@ export const userSignin = async (
   }
 };
 
+// Refresh token
 export const refreshToken = async (
   req: Request,
   res: Response,
@@ -51,6 +54,7 @@ export const refreshToken = async (
   }
 };
 
+// Logout
 export const logout = (req: Request, res: Response) => {
   return successResponse(res, null, "Logged out successfully");
 };

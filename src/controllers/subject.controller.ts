@@ -6,6 +6,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+// Get all subjects
 export const getAllSubjects = async (
   req: Request,
   res: Response,
@@ -53,6 +54,7 @@ export const getAllSubjects = async (
   }
 };
 
+// Get subject by ID
 export const getSubjectById = async (
   req: Request,
   res: Response,
@@ -66,6 +68,7 @@ export const getSubjectById = async (
   }
 };
 
+// Create subject
 export const createSubject = async (
   req: Request,
   res: Response,
@@ -90,6 +93,7 @@ export const createSubject = async (
   }
 };
 
+// Update subject
 export const updateSubject = async (
   req: Request,
   res: Response,
@@ -115,6 +119,7 @@ export const updateSubject = async (
   }
 };
 
+// Update subject status
 export const updateSubjectStatus = async (
   req: Request,
   res: Response,
@@ -137,6 +142,7 @@ export const updateSubjectStatus = async (
   }
 };
 
+// Get user subjects
 export const getUserSubjects = async (
   req: Request,
   res: Response,
@@ -157,6 +163,7 @@ export const getUserSubjects = async (
   }
 };
 
+// Assign subjects to user
 export const assignSubjectsToUser = async (
   req: Request,
   res: Response,
@@ -185,6 +192,7 @@ export const assignSubjectsToUser = async (
   }
 };
 
+// Assign subject to user
 export const assignSubjectToUser = async (
   req: Request,
   res: Response,
@@ -208,6 +216,7 @@ export const assignSubjectToUser = async (
   }
 };
 
+// Delete subject
 export const deleteSubject = async (
   req: Request,
   res: Response,

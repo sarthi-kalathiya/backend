@@ -60,6 +60,10 @@ export const assignSubjectsSchema = {
 
 // Delete subject validation schema
 export const deleteSubjectSchema = {
-  subjectId: validators.compose(validators.required, validators.string, validators.uuid),
+  subjectId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  ),
 };
 // ----
