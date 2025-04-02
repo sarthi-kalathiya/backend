@@ -6,6 +6,7 @@ import prisma from "../utils/prismaClient";
 import { UserRole } from "../constants/user";
 import { TokenPayload } from "../models/auth.model";
 
+// Verify auth and get user
 const verifyAuthAndGetUser = async (
   req: Request,
   options?: {
@@ -54,6 +55,7 @@ const verifyAuthAndGetUser = async (
   return { user, profileCompleted: user.profileCompleted };
 };
 
+// Create auth middleware
 const createAuthMiddleware = (options?: {
   requiredRole?: UserRole;
   checkProfileCompletion?: boolean;
@@ -75,6 +77,7 @@ const createAuthMiddleware = (options?: {
   };
 };
 
+// Middleware for admin authentication
 export const authenticateAdmin = createAuthMiddleware({
   requiredRole: UserRole.ADMIN,
 });
