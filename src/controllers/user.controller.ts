@@ -101,17 +101,10 @@ export const changePassword = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user) {
-      throw new UnauthorizedError("User not authenticated");
-    }
+ 
     const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      throw new BadRequestError("Please provide current and new password");
-    }
-
     const result = await userService.changeUserPassword(
-      req.user.id,
+      req.user!.id,
       currentPassword,
       newPassword
     );
@@ -148,7 +141,6 @@ export const getUserById = async (
   try {
     const user = await userService.getUserById(req.params.userId);
 
-    // Get the user's subjects
     let subjects: any[] = [];
     try {
       subjects = await subjectService.getUserSubjects(req.params.userId);
@@ -300,17 +292,14 @@ export const getProfileStatus = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user) {
-      throw new UnauthorizedError("User not authenticated");
-    }
-
+  
     return successResponse(res, {
-      profileCompleted: req.user.profileCompleted,
-      role: req.user.role,
+      profileCompleted: req.user!.profileCompleted,
+      role: req.user!.role,
       requiresAdditionalSetup:
-        (req.user.role === UserRole.STUDENT ||
-          req.user.role === UserRole.TEACHER) &&
-        !req.user.profileCompleted,
+        (req.user!.role === UserRole.STUDENT ||
+          req.user!.role === UserRole.TEACHER) &&
+        !req.user!.profileCompleted,
     });
   } catch (error) {
     next(error);
@@ -323,18 +312,9 @@ export const createTeacherProfile = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user || !req.user.id) {
-      throw new UnauthorizedError("User not authenticated");
-    }
-
-    // Verify user is a teacher
-    if (req.user.role !== UserRole.TEACHER) {
-      throw new ForbiddenError("Only teachers can create a teacher profile");
-    }
-
     const teacherProfileData = req.body;
     const result = await userService.createTeacherProfile(
-      req.user.id,
+      req.user!.id,
       teacherProfileData
     );
 
@@ -350,18 +330,10 @@ export const createStudentProfile = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user || !req.user.id) {
-      throw new UnauthorizedError("User not authenticated");
-    }
-
-    // Verify user is a student
-    if (req.user.role !== UserRole.STUDENT) {
-      throw new ForbiddenError("Only students can create a student profile");
-    }
-
+  
     const studentProfileData = req.body;
     const result = await userService.createStudentProfile(
-      req.user.id,
+      req.user!.id,
       studentProfileData
     );
 
@@ -378,19 +350,8 @@ export const getUserProfile = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user || !req.user.id) {
-      throw new UnauthorizedError("User is not authenticated");
-    }
-
-    const userProfile = await userService.getUserWithProfile(req.user.id);
-
-    // Add debug log to see what's being returned for teacher profiles
-    if (userProfile.role === "TEACHER" && userProfile.teacher) {
-      console.log(
-        "Teacher profile data being returned:",
-        JSON.stringify(userProfile.teacher)
-      );
-    }
+    
+    const userProfile = await userService.getUserWithProfile(req.user!.id);
 
     return successResponse(
       res,
@@ -409,13 +370,10 @@ export const updateUserProfile = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user || !req.user.id) {
-      throw new UnauthorizedError("User not authenticated");
-    }
 
     const profileData = req.body;
     const updatedProfile = await userService.updateUserProfile(
-      req.user.id,
+      req.user!.id,
       profileData
     );
 

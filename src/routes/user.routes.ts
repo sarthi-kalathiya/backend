@@ -20,7 +20,6 @@ import {
 
 const router = Router();
 
-// Profile status routes - accessible after authentication without completed profile
 router.get("/profile-status", authenticate, userController.getProfileStatus);
 
 router.post(

@@ -122,40 +122,40 @@ export const getUserById = async (userId: string) => {
     throw new NotFoundError("User not found");
   }
 
-  // Now get the user's subjects
-  let subjects: any[] = [];
+  // // Now get the user's subjects
+  // let subjects: any[] = [];
 
-  try {
-    // If the user is a student or teacher, get their subjects
-    if (user.student || user.teacher) {
-      // Get subjects from the database based on the user's role
-      if (user.student) {
-        const studentSubjects = await prisma.studentsOnSubjects.findMany({
-          where: { studentId: user.student.id },
-          include: {
-            subject: true,
-          },
-        });
-        subjects = studentSubjects.map((item) => item.subject);
-      } else if (user.teacher) {
-        const teacherSubjects = await prisma.teachersOnSubjects.findMany({
-          where: { teacherId: user.teacher.id },
-          include: {
-            subject: true,
-          },
-        });
-        subjects = teacherSubjects.map((item) => item.subject);
-      }
-    }
-  } catch (error) {
-    console.error("Error fetching user subjects:", error);
-    // Continue with subjects as empty array
-  }
+  // try {
+  //   // If the user is a student or teacher, get their subjects
+  //   if (user.student || user.teacher) {
+  //     // Get subjects from the database based on the user's role
+  //     if (user.student) {
+  //       const studentSubjects = await prisma.studentsOnSubjects.findMany({
+  //         where: { studentId: user.student.id },
+  //         include: {
+  //           subject: true,
+  //         },
+  //       });
+  //       subjects = studentSubjects.map((item) => item.subject);
+  //     } else if (user.teacher) {
+  //       const teacherSubjects = await prisma.teachersOnSubjects.findMany({
+  //         where: { teacherId: user.teacher.id },
+  //         include: {
+  //           subject: true,
+  //         },
+  //       });
+  //       subjects = teacherSubjects.map((item) => item.subject);
+  //     }
+  //   }
+  // } catch (error) {
+  //   console.error("Error fetching user subjects:", error);
+  //   // Continue with subjects as empty array
+  // }
 
   // Return user with subjects
   return {
     ...user,
-    subjects,
+    // subjects,
   };
 };
 
@@ -566,12 +566,6 @@ export const createTeacherProfile = async (
   // Validate required fields
   const { qualification, expertise, experience, bio } = teacherData;
 
-  if (!qualification || !expertise || bio === undefined) {
-    throw new BadRequestError(
-      "All fields are required: qualification, expertise, and bio"
-    );
-  }
-
   // Check if user exists and is a teacher
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -600,24 +594,7 @@ export const createTeacherProfile = async (
       data: {
         qualification,
         expertise,
-        experience: experience || 0,
-        bio,
-      },
-    });
-
-    // Update the user's profileCompleted status
-    await prisma.user.update({
-      where: { id: userId },
-      data: { profileCompleted: true },
-    });
-  } else {
-    // Create a new profile (shouldn't happen with our new implementation)
-    teacher = await prisma.teacher.create({
-      data: {
-        userId,
-        qualification,
-        expertise,
-        experience: experience || 0,
+        experience: experience,
         bio,
       },
     });
@@ -660,36 +637,6 @@ export const createStudentProfile = async (
 ) => {
   // Validate required fields
   const { rollNumber, grade, parentContactNumber } = studentData;
-
-  if (!rollNumber || !grade || !parentContactNumber) {
-    throw new BadRequestError(
-      "All fields are required: rollNumber, grade, and parentContactNumber"
-    );
-  }
-
-  // Validate roll number format (alphanumeric with optional hyphens)
-  const rollNumberRegex = /^[A-Za-z0-9-]+$/;
-  if (!rollNumberRegex.test(rollNumber)) {
-    throw new BadRequestError(
-      "Invalid roll number format. Only alphanumeric characters and hyphens are allowed"
-    );
-  }
-
-  // Validate grade format (alphanumeric with optional spaces and hyphens)
-  const gradeRegex = /^[A-Za-z0-9\s-]+$/;
-  if (!gradeRegex.test(grade)) {
-    throw new BadRequestError(
-      "Invalid grade format. Only alphanumeric characters, spaces, and hyphens are allowed"
-    );
-  }
-
-  // Validate parent contact number (must be at least 10 digits)
-  const contactRegex = /^\+?[\d\s-]{10,}$/;
-  if (!contactRegex.test(parentContactNumber)) {
-    throw new BadRequestError(
-      "Invalid parent contact number format. Must be at least 10 digits"
-    );
-  }
 
   // Check if user exists and is a student
   const user = await prisma.user.findUnique({
@@ -744,22 +691,6 @@ export const createStudentProfile = async (
         where: { id: userId },
         data: { profileCompleted: true },
       });
-    } else {
-      // Create a new profile (shouldn't happen with our new implementation)
-      student = await prisma.student.create({
-        data: {
-          userId,
-          rollNumber,
-          grade,
-          parentContactNumber,
-        },
-      });
-
-      // Update the user's profileCompleted status
-      await prisma.user.update({
-        where: { id: userId },
-        data: { profileCompleted: true },
-      });
     }
 
     // Get the updated user with profile
@@ -793,6 +724,7 @@ export const createStudentProfile = async (
 
 // Get user with profile details
 export const getUserWithProfile = async (userId: string) => {
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -868,38 +800,17 @@ export const updateUserProfile = async (
   });
 
   // If teacher, update teacher profile
-  if (user.role === UserRole.TEACHER && profileData.teacherProfile) {
-    console.log(
-      `Updating teacher profile for userId: ${userId} with:`,
-      profileData.teacherProfile
-    );
-
-    if (!user.teacher) {
-      console.warn(
-        `Teacher record not found. Creating new teacher profile for userId: ${userId}`
-      );
-      // Create teacher profile if it doesn't exist
-      await prisma.teacher.create({
-        data: {
-          userId,
-          qualification: profileData.teacherProfile.qualification,
-          expertise: profileData.teacherProfile.expertise,
-          experience: profileData.teacherProfile.experience,
-          bio: profileData.teacherProfile.bio,
-        },
-      });
-    } else {
-      // Update existing teacher profile
-      await prisma.teacher.update({
-        where: { userId },
-        data: {
-          qualification: profileData.teacherProfile.qualification,
-          expertise: profileData.teacherProfile.expertise,
-          experience: profileData.teacherProfile.experience,
-          bio: profileData.teacherProfile.bio,
-        },
-      });
-    }
+  if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
+    // Update existing teacher profile
+    await prisma.teacher.update({
+      where: { userId },
+      data: {
+        qualification: profileData.teacherProfile.qualification,
+        expertise: profileData.teacherProfile.expertise,
+        experience: profileData.teacherProfile.experience,
+        bio: profileData.teacherProfile.bio,
+      },
+    });
   }
 
   // If student, update student profile
