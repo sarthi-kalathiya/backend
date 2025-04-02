@@ -1,6 +1,16 @@
 import prisma from "../utils/prismaClient";
 import { BadRequestError, NotFoundError } from "../utils/errors";
 
+type SubjectWithRelations = {
+  subject: {
+    id: string;
+    name: string;
+    description: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
+};
+
 export const getAllSubjects = async (
   includeInactive = false,
   searchTerm?: string,
@@ -101,11 +111,6 @@ export const createSubject = async (
     throw new BadRequestError("Subject with this code already exists");
   }
 
-  // Validate credits
-  if (credits < 1 || credits > 6) {
-    throw new BadRequestError("Credits must be between 1 and 6");
-  }
-
   const subject = await prisma.subject.create({
     data: {
       name,
@@ -170,24 +175,14 @@ export const updateSubject = async (
     }
   }
 
-  // Validate credits if provided
-  if (credits !== undefined) {
-    if (credits < 1 || credits > 6) {
-      throw new BadRequestError("Credits must be between 1 and 6");
-    }
-  }
-
-  const updateData: any = { name, code };
+  const updateData: any = { name, code, credits };
   if (description !== undefined) {
     updateData.description = description;
   }
-  if (credits !== undefined) {
-    updateData.credits = credits;
-  }
+  
   if (isActive !== undefined) {
     updateData.isActive = isActive;
   }
-
   const updatedSubject = await prisma.subject.update({
     where: { id: subjectId },
     data: updateData,
@@ -238,7 +233,7 @@ export const getUserSubjects = async (userId: string) => {
       },
     });
 
-    return studentSubjects.map((item) => item.subject);
+    return studentSubjects.map((item: SubjectWithRelations) => item.subject);
   } else if (user.teacher) {
     const teacherSubjects = await prisma.teachersOnSubjects.findMany({
       where: { teacherId: user.teacher.id },
@@ -247,7 +242,7 @@ export const getUserSubjects = async (userId: string) => {
       },
     });
 
-    return teacherSubjects.map((item) => item.subject);
+    return teacherSubjects.map((item: SubjectWithRelations) => item.subject);
   }
 
   return [];
@@ -278,111 +273,56 @@ export const assignSubjectsToUser = async (
     throw new BadRequestError("One or more subjects not found");
   }
 
-  if (user.student) {
-    // Get existing assignments to check for duplicates
-    const existingAssignments = await prisma.studentsOnSubjects.findMany({
-      where: {
-        studentId: user.student.id,
-        subjectId: { in: subjectIds },
-      },
-    });
+  const isStudent = !!user.student;
+  const modelName = isStudent ? 'studentsOnSubjects' : 'teachersOnSubjects';
+  const userIdField = isStudent ? 'studentId' : 'teacherId';
+  const userRoleId = isStudent ? user.student!.id : user.teacher!.id;
+  const userType = isStudent ? 'student' : 'teacher';
 
-    // Filter out already assigned subjects
-    const newSubjectIds = subjectIds.filter(
-      (subjectId) =>
-        !existingAssignments.some(
-          (assignment) => assignment.subjectId === subjectId
-        )
-    );
+  // Get existing assignments to check for duplicates
+  const existingAssignments = await prisma[modelName].findMany({
+    where: {
+      [userIdField]: userRoleId,
+      subjectId: { in: subjectIds },
+    },
+  });
 
-    if (newSubjectIds.length === 0) {
-      throw new BadRequestError(
-        "All subjects are already assigned to this student"
-      );
-    }
-
-    // Add new subject assignments
-    await Promise.all(
-      newSubjectIds.map((subjectId) =>
-        prisma.studentsOnSubjects.create({
-          data: {
-            studentId: user.student!.id,
-            subjectId,
-          },
-        })
+  // Filter out already assigned subjects
+  const newSubjectIds = subjectIds.filter(
+    (subjectId) =>
+      !existingAssignments.some(
+        (assignment: { subjectId: string }) => assignment.subjectId === subjectId
       )
+  );
+
+  if (newSubjectIds.length === 0) {
+    throw new BadRequestError(
+      `All subjects are already assigned to this ${userType}`
     );
-
-    // Get all subjects for the student
-    const studentSubjects = await prisma.studentsOnSubjects.findMany({
-      where: { studentId: user.student.id },
-      include: {
-        subject: true,
-      },
-    });
-
-    return studentSubjects.map((item: SubjectWithRelations) => item.subject);
-  } else if (user.teacher) {
-    // Get existing assignments to check for duplicates
-    const existingAssignments = await prisma.teachersOnSubjects.findMany({
-      where: {
-        teacherId: user.teacher.id,
-        subjectId: { in: subjectIds },
-      },
-    });
-
-    // Filter out already assigned subjects
-    const newSubjectIds = subjectIds.filter(
-      (subjectId) =>
-        !existingAssignments.some(
-          (assignment) => assignment.subjectId === subjectId
-        )
-    );
-
-    if (newSubjectIds.length === 0) {
-      throw new BadRequestError(
-        "All subjects are already assigned to this teacher"
-      );
-    }
-
-    // Add new subject assignments
-    await Promise.all(
-      newSubjectIds.map((subjectId) =>
-        prisma.teachersOnSubjects.create({
-          data: {
-            teacherId: user.teacher!.id,
-            subjectId,
-          },
-        })
-      )
-    );
-
-    // Get all subjects for the teacher
-    const teacherSubjects = await prisma.teachersOnSubjects.findMany({
-      where: { teacherId: user.teacher.id },
-      include: {
-        subject: true,
-      },
-    });
-
-    return teacherSubjects.map((item: SubjectWithRelations) => item.subject);
   }
 
-  throw new BadRequestError(
-    "User must be a student or teacher to assign subjects"
+  // Add new subject assignments
+  await Promise.all(
+    newSubjectIds.map((subjectId) =>
+      prisma[modelName].create({
+        data: {
+          [userIdField]: userRoleId,
+          subjectId,
+        },
+      })
+    )
   );
-};
 
-interface SubjectWithRelations {
-  subject: {
-    id: string;
-    name: string;
-    description?: string;
-    isActive: boolean;
-    createdAt: Date;
-    updatedAt: Date;
-  };
-}
+  // Get all subjects for the user
+  const userSubjects = await prisma[modelName].findMany({
+    where: { [userIdField]: userRoleId },
+    include: {
+      subject: true,
+    },
+  });
+
+  return userSubjects.map((item: SubjectWithRelations) => item.subject);
+};
 
 export const assignSubjectToUser = async (
   userId: string,

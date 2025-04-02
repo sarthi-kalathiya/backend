@@ -17,6 +17,7 @@ export const createSubjectSchema = {
   ),
   description: validators.compose(validators.string, validators.maxLength(500)),
   credits: validators.compose(
+    validators.required,
     validators.number,
     validators.min(1),
     validators.max(10)
@@ -27,11 +28,13 @@ export const createSubjectSchema = {
 export const updateSubjectSchema = {
   name: validators.compose(
     validators.string,
+    validators.required,
     validators.minLength(2),
     validators.maxLength(100)
   ),
   code: validators.compose(
     validators.string,
+    validators.required,
     validators.minLength(2),
     validators.maxLength(20),
     validators.subjectCodePattern
@@ -39,6 +42,7 @@ export const updateSubjectSchema = {
   description: validators.compose(validators.string, validators.maxLength(500)),
   credits: validators.compose(
     validators.number,
+    validators.required,
     validators.min(1),
     validators.max(10)
   ),
@@ -52,5 +56,10 @@ export const updateSubjectStatusSchema = {
 // Subject assignment validation schema
 export const assignSubjectsSchema = {
   subjectIds: validators.compose(validators.required, validators.array),
+};
+
+// Delete subject validation schema
+export const deleteSubjectSchema = {
+  subjectId: validators.compose(validators.required, validators.string, validators.uuid),
 };
 // ----

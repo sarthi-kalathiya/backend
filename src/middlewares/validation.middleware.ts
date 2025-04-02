@@ -128,7 +128,6 @@ export const validators = {
     if (value && typeof value === "string") {
       // Allows formats: +1234567890, 123-456-7890, (123) 456-7890, etc.
       const phoneRegex = /^\d{9,11}$/;
-      const phoneRegex = /^\d{9,11}$/;
       if (!phoneRegex.test(value)) {
         return `${fieldName} must be a valid phone number`;
       }
@@ -290,7 +289,6 @@ const validationError = (
 };
 // Validation middleware for specific endpoints
 
-// ----
 // ----
 // Existing validation middleware for responses
 export const validateResponses = (allowEmpty = false) => {

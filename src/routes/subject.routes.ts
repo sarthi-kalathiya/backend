@@ -7,12 +7,13 @@ import {
   updateSubjectSchema,
   updateSubjectStatusSchema,
   assignSubjectsSchema,
+  deleteSubjectSchema,
 } from "../validations/subject.validation";
 
 const router = Router();
 
 // Public subject routes
-router.get("/", subjectController.getAllSubjects);
+router.get("/", authenticateAdmin, subjectController.getAllSubjects);
 router.get("/:subjectId", subjectController.getSubjectById);
 
 // Admin subject management routes
@@ -22,21 +23,25 @@ router.post(
   validateFields(createSubjectSchema),
   subjectController.createSubject
 );
+
 router.put(
   "/admin/subjects/:subjectId",
   authenticateAdmin,
   validateFields(updateSubjectSchema),
   subjectController.updateSubject
 );
+
 router.patch(
   "/admin/subjects/:subjectId/status",
   authenticateAdmin,
   validateFields(updateSubjectStatusSchema),
   subjectController.updateSubjectStatus
 );
+
 router.delete(
   "/admin/subjects/:subjectId",
   authenticateAdmin,
+  validateFields(deleteSubjectSchema),
   subjectController.deleteSubject
 );
 
@@ -46,6 +51,7 @@ router.get(
   authenticateAdmin,
   subjectController.getUserSubjects
 );
+
 // Add multiple subjects to user
 router.post(
   "/admin/users/:userId/subjects",
@@ -53,6 +59,7 @@ router.post(
   validateFields(assignSubjectsSchema),
   subjectController.assignSubjectsToUser
 );
+
 // Add single subject to user
 router.post(
   "/admin/users/:userId/subjects/:subjectId",

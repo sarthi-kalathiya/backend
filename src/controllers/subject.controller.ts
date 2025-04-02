@@ -12,7 +12,6 @@ export const getAllSubjects = async (
   next: NextFunction
 ) => {
   try {
-    console.log("Received request for getAllSubjects");
     console.log("Query parameters:", req.query);
 
     // Extract query parameters
@@ -26,15 +25,6 @@ export const getAllSubjects = async (
     if (req.query.isActive !== undefined) {
       filterActive = req.query.isActive === "true";
     }
-
-    console.log("Parsed parameters:", {
-      includeInactive,
-      searchTerm,
-      page,
-      pageSize,
-      filterActive,
-    });
-
     // Get subjects with pagination
     const result = await subjectService.getAllSubjects(
       includeInactive,
@@ -43,11 +33,6 @@ export const getAllSubjects = async (
       pageSize,
       filterActive
     );
-
-    console.log("Returning response with data:", {
-      totalItems: result.totalItems,
-      totalPages: result.totalPages,
-    });
 
     return successResponse(
       res,
@@ -89,32 +74,6 @@ export const createSubject = async (
   try {
     const { name, code, description, credits, isActive } = req.body;
 
-    if (!name) {
-      throw new BadRequestError("Please provide subject name");
-    }
-
-    if (!code) {
-      throw new BadRequestError("Please provide subject code");
-    }
-
-    // Validate code format (alphanumeric with optional hyphens)
-    const codeRegex = /^[A-Za-z0-9-]+$/;
-    if (!codeRegex.test(code)) {
-      throw new BadRequestError(
-        "Subject code must contain only letters, numbers, and hyphens"
-      );
-    }
-
-    // Validate credits
-    let validatedCredits = credits ? parseInt(credits) : 3;
-    if (isNaN(validatedCredits)) {
-      throw new BadRequestError("Credits must be a number");
-    }
-
-    if (validatedCredits < 1 || validatedCredits > 6) {
-      throw new BadRequestError("Credits must be between 1 and 6");
-    }
-
     // Parse isActive boolean
     const activeStatus = isActive === undefined ? true : Boolean(isActive);
 
@@ -122,7 +81,7 @@ export const createSubject = async (
       name,
       code,
       description,
-      validatedCredits,
+      credits,
       activeStatus
     );
     return createdResponse(res, subject, "Subject created successfully");
@@ -139,35 +98,6 @@ export const updateSubject = async (
   try {
     const { name, code, description, credits, isActive } = req.body;
 
-    if (!name) {
-      throw new BadRequestError("Please provide subject name");
-    }
-
-    if (!code) {
-      throw new BadRequestError("Please provide subject code");
-    }
-
-    // Validate code format (alphanumeric with optional hyphens)
-    const codeRegex = /^[A-Za-z0-9-]+$/;
-    if (!codeRegex.test(code)) {
-      throw new BadRequestError(
-        "Subject code must contain only letters, numbers, and hyphens"
-      );
-    }
-
-    // Validate credits if provided
-    let validatedCredits = undefined;
-    if (credits !== undefined) {
-      validatedCredits = parseInt(credits);
-      if (isNaN(validatedCredits)) {
-        throw new BadRequestError("Credits must be a number");
-      }
-
-      if (validatedCredits < 1 || validatedCredits > 6) {
-        throw new BadRequestError("Credits must be between 1 and 6");
-      }
-    }
-
     // Parse isActive boolean if provided
     const activeStatus = isActive === undefined ? undefined : Boolean(isActive);
 
@@ -176,7 +106,7 @@ export const updateSubject = async (
       name,
       code,
       description,
-      validatedCredits,
+      credits,
       activeStatus
     );
     return successResponse(res, subject, "Subject updated successfully");
@@ -193,10 +123,6 @@ export const updateSubjectStatus = async (
   try {
     const { isActive } = req.body;
 
-    if (isActive === undefined) {
-      throw new BadRequestError("Please provide isActive status");
-    }
-
     const subject = await subjectService.updateSubjectStatus(
       req.params.subjectId,
       isActive
@@ -211,11 +137,6 @@ export const updateSubjectStatus = async (
   }
 };
 
-/**
- * Get subjects assigned to a user
- * @route GET /subject/admin/users/:userId/subjects
- * @access Admin
- */
 export const getUserSubjects = async (
   req: Request,
   res: Response,
@@ -236,11 +157,6 @@ export const getUserSubjects = async (
   }
 };
 
-/**
- * Assign multiple subjects to a user
- * @route POST /subject/admin/users/:userId/subjects
- * @access Admin
- */
 export const assignSubjectsToUser = async (
   req: Request,
   res: Response,
@@ -250,7 +166,7 @@ export const assignSubjectsToUser = async (
     const { userId } = req.params;
     const { subjectIds } = req.body;
 
-    if (!Array.isArray(subjectIds) || subjectIds.length === 0) {
+    if (subjectIds.length === 0) {
       throw new BadRequestError("Please provide an array of subject IDs");
     }
 
@@ -269,11 +185,6 @@ export const assignSubjectsToUser = async (
   }
 };
 
-/**
- * Assign a single subject to a user
- * @route POST /subject/admin/users/:userId/subjects/:subjectId
- * @access Admin
- */
 export const assignSubjectToUser = async (
   req: Request,
   res: Response,
@@ -297,11 +208,6 @@ export const assignSubjectToUser = async (
   }
 };
 
-/**
- * Delete a subject
- * @route DELETE /subject/admin/subjects/:subjectId
- * @access Admin
- */
 export const deleteSubject = async (
   req: Request,
   res: Response,

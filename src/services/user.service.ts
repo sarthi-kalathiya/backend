@@ -626,7 +626,7 @@ export const updateUserProfile = async (
 
   // Get updated user with profile
   return getUserWithProfile(userId);
-};
+}};
 
 // Delete a user
 export const deleteUser = async (userId: string) => {
