@@ -5,6 +5,7 @@ import {
   authenticateAdmin,
   authenticateTeacher,
   authenticateStudent,
+  requireProfileCompletion
 } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
@@ -20,7 +21,6 @@ import {
 
 const router = Router();
 
-// Profile status routes - accessible after authentication without completed profile
 router.get("/profile-status", authenticate, userController.getProfileStatus);
 
 router.post(
@@ -37,10 +37,11 @@ router.post(
 );
 
 // Profile routes - require authentication
-router.get("/profile", authenticate, userController.getUserProfile);
+router.get("/profile", authenticate, requireProfileCompletion, userController.getUserProfile);
 router.put(
   "/profile",
   authenticate,
+  requireProfileCompletion,
   validateFields(userProfileUpdateSchema),
   userController.updateUserProfile
 );

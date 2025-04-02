@@ -95,7 +95,8 @@ export const studentProfileSchema = {
     validators.required,
     validators.string,
     validators.minLength(2),
-    validators.maxLength(20)
+    validators.maxLength(10),
+    validators.rollNumber
   ),
   grade: validators.compose(
     validators.required,
@@ -106,7 +107,7 @@ export const studentProfileSchema = {
   parentContactNumber: validators.compose(
     validators.required,
     validators.string,
-    validators.phone
+    validators.phone,
   ),
 };
 
@@ -132,7 +133,7 @@ export const changePasswordSchema = {
   currentPassword: validators.compose(
     validators.required,
     validators.string,
-    validators.minLength(6)
+    validators.password
   ),
   newPassword: validators.compose(
     validators.required,

@@ -127,8 +127,7 @@ export const validators = {
   phone: (value: any, fieldName: string): true | string => {
     if (value && typeof value === "string") {
       // Allows formats: +1234567890, 123-456-7890, (123) 456-7890, etc.
-      const phoneRegex =
-        /^(\+?\d{1,3}[- ]?)?(\(?\d{3}\)?[- ]?)?(\d{3}[- ]?\d{4})$/;
+      const phoneRegex = /^\d{9,11}$/;
       if (!phoneRegex.test(value)) {
         return `${fieldName} must be a valid phone number`;
       }
@@ -136,6 +135,15 @@ export const validators = {
     return true;
   },
 
+  rollNumber: (value: any, fieldName: string): true | string => {
+    if (value && typeof value === "string") {
+      const rollNumberRegex = /^[a-zA-Z0-9]{2,10}$/;
+      if (!rollNumberRegex.test(value)) {
+        return `${fieldName} must be a valid rollNumber`;
+      }
+    }
+    return true;
+  },
   password: (value: any, fieldName: string): true | string => {
     if (value && typeof value === "string") {
       if (value.length < 8) {
@@ -265,7 +273,6 @@ export const validators = {
   },
 };
 
-// ----
 // Generic validation error response function
 const validationError = (
   res: Response,
@@ -282,6 +289,7 @@ const validationError = (
 };
 // Validation middleware for specific endpoints
 
+// ----
 // Existing validation middleware for responses
 export const validateResponses = (allowEmpty = false) => {
   return (req: Request, res: Response, next: NextFunction) => {

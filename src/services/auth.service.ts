@@ -14,7 +14,7 @@ import {
   TokenPayload,
   TokenResponse,
 } from "../models/auth.model";
-import { UserResponseDto } from "../models/user.model";
+import { UserResponseDto, UserWithProfileResponseDto } from "../models/user.model";
 
 export const generateToken = (userId: string, role: UserRole): string => {
   return jwt.sign(
@@ -113,12 +113,16 @@ export const adminSignup = async (
 
 export const signin = async (
   credentials: LoginDto
-): Promise<{ user: UserResponseDto } & TokenResponse> => {
+): Promise<{ user: UserWithProfileResponseDto } & TokenResponse> => {
   const { email, password } = credentials;
 
-  // Find user by email
+  // Find user by email with teacher and student data
   const user = await prisma.user.findUnique({
     where: { email },
+    include: {
+      teacher: true,
+      student: true,
+    },
   });
 
   if (!user) {
@@ -152,6 +156,8 @@ export const signin = async (
       profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
+      teacher: user.teacher || null,
+      student: user.student || null,
     },
     accessToken,
     refreshToken,
