@@ -12,13 +12,11 @@ const router = Router();
 console.log("Auth routes file loaded");
 
 // Admin auth routes
-console.log("Registering admin signup route: /admin/signup");
 router.post(
   "/admin/signup",
   validateFields(adminSignupSchema),
   authController.adminSignup
 );
-// router.post('/admin/signin', authController.userSignin);
 
 // User auth routes (for teachers and students)
 router.post("/signin", validateFields(signinSchema), authController.userSignin);

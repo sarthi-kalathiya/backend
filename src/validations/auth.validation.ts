@@ -27,7 +27,9 @@ export const adminSignupSchema = {
   contactNumber: validators.compose(
     validators.required,
     validators.string,
-    validators.phone
+    validators.phone,
+    validators.minLength(9),
+    validators.maxLength(11)
   ),
 };
 
@@ -38,7 +40,11 @@ export const signinSchema = {
     validators.string,
     validators.email
   ),
-  password: validators.compose(validators.required, validators.string),
+  password: validators.compose(
+    validators.required,
+    validators.string,
+    validators.password
+  ),
 };
 
 // Refresh token validation schema
