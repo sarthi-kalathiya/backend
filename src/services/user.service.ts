@@ -377,6 +377,7 @@ export const createTeacherProfile = async (
         qualification,
         expertise,
         experience: experience,
+        experience: experience,
         bio,
       },
     });
@@ -507,6 +508,7 @@ export const createStudentProfile = async (
 // Get user with profile details
 export const getUserWithProfile = async (userId: string) => {
 
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
@@ -582,6 +584,17 @@ export const updateUserProfile = async (
   });
 
   // If teacher, update teacher profile
+  if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
+    // Update existing teacher profile
+    await prisma.teacher.update({
+      where: { userId },
+      data: {
+        qualification: profileData.teacherProfile.qualification,
+        expertise: profileData.teacherProfile.expertise,
+        experience: profileData.teacherProfile.experience,
+        bio: profileData.teacherProfile.bio,
+      },
+    });
   if (user.role === UserRole.TEACHER && profileData.teacherProfile && user.teacher) {
     // Update existing teacher profile
     await prisma.teacher.update({
