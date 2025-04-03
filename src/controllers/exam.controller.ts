@@ -15,15 +15,8 @@ export const getTeacherExams = async (
   next: NextFunction
 ) => {
   try {
-    if (!req.user) {
-      throw new UnauthorizedError("Authentication required");
-    }
-
-    const teacherId = req.user.teacher?.id;
-    if (!teacherId) {
-      throw new BadRequestError("Teacher profile not found or incomplete");
-    }
-
+    const teacherId = req.user!.teacher?.id;
+    
     // Get pagination parameters from query
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;

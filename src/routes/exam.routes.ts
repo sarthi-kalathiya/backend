@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as examController from "../controllers/exam.controller";
-import { authenticateTeacher } from "../middlewares/auth.middleware";
+import { authenticateTeacher, requireProfileCompletion } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
   createExamSchema,
@@ -14,9 +14,7 @@ const router = Router();
 console.log("Exam routes file loaded");
 
 // Teacher exam routes
-// Note: The prefix '/teacher' is already in the app.use('/api/teacher', examRoutes)
-// So we use paths like '/exams' instead of '/teacher/exams'
-router.get("/exams", authenticateTeacher, examController.getTeacherExams);
+router.get("/exams", authenticateTeacher, requireProfileCompletion, examController.getTeacherExams);
 router.post(
   "/exams",
   authenticateTeacher,

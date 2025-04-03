@@ -1,13 +1,6 @@
 getting the password hash in the get and put profile as well 
 
-why update exam has requried feilds
-
-in assigning the exam to student - student-id joi a chhe
 able to assgin the same exam to same student more than one time
-
-
-change password dto use
-reset password dto use
 
 subject.modal to use j nai thatu
 
@@ -26,7 +19,5 @@ validations - all done
 
 
 once roll is assigned there should be no way back to change it
-
+models no proper use, validations schema no proper use
 check profile status ne eliminate kri ne frontend
-
-
