@@ -20,7 +20,7 @@ router.get("/", authenticateAdmin, subjectController.getAllSubjects);
 router.get(
   "/:subjectId",
   authenticateAdmin,
-  validateFields(subjectIdParamSchema),
+  validateFields(subjectIdParamSchema, "params"),
   subjectController.getSubjectById
 );
 
@@ -36,7 +36,7 @@ router.post(
 router.put(
   "/admin/subjects/:subjectId",
   authenticateAdmin,
-  validateFields(subjectIdParamSchema),
+  validateFields(subjectIdParamSchema, "params"),
   validateFields(updateSubjectSchema),
   subjectController.updateSubject
 );
@@ -45,7 +45,7 @@ router.put(
 router.patch(
   "/admin/subjects/:subjectId/status",
   authenticateAdmin,
-  validateFields(subjectIdParamSchema),
+  validateFields(subjectIdParamSchema, "params"),
   validateFields(updateSubjectStatusSchema),
   subjectController.updateSubjectStatus
 );
@@ -54,7 +54,7 @@ router.patch(
 router.delete(
   "/admin/subjects/:subjectId",
   authenticateAdmin,
-  validateFields(subjectIdParamSchema),
+  validateFields(subjectIdParamSchema, "params"),
   validateFields(deleteSubjectSchema),
   subjectController.deleteSubject
 );
@@ -63,7 +63,7 @@ router.delete(
 router.get(
   "/admin/users/:userId/subjects",
   authenticateAdmin,
-  validateFields(userIdParamSchema),
+  validateFields(userIdParamSchema, "params"),
   subjectController.getUserSubjects
 );
 
@@ -71,7 +71,7 @@ router.get(
 router.post(
   "/admin/users/:userId/subjects",
   authenticateAdmin,
-  validateFields(userIdParamSchema),
+  validateFields(userIdParamSchema, "params"),
   validateFields(assignSubjectsSchema),
   subjectController.assignSubjectsToUser
 );
@@ -80,8 +80,8 @@ router.post(
 router.post(
   "/admin/users/:userId/subjects/:subjectId",
   authenticateAdmin,
-  validateFields(userIdParamSchema),
-  validateFields(subjectIdParamSchema),
+  validateFields(userIdParamSchema, "params"),
+  validateFields(subjectIdParamSchema, "params"),
   subjectController.assignSubjectToUser
 );
 

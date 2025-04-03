@@ -2,12 +2,22 @@ import { Request, Response } from "express";
 import { logger } from "../utils/logger";
 import { successResponse, warningResponse } from "../utils/response";
 import * as teacherExamService from "../services/teacherExam.service";
+import { AssignExamDto } from "../models/exam.model";
+
+// Extend Express Request type
+declare global {
+  namespace Express {
+    interface Request {
+      user?: any; // This matches how the auth middleware attaches the user
+    }
+  }
+}
 
 // Assign exam to students
 export const assignExamToStudents = async (req: Request, res: Response) => {
   try {
-    const { examId } = req.params;
-    const { studentIds } = req.body;
+    const examId = req.params.examId;
+    const { studentIds } = req.body as AssignExamDto;
     const teacherId = req.user?.teacher?.id;
 
     if (!teacherId) {
@@ -105,7 +115,7 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
 // Get all results for an exam
 export const getExamResults = async (req: Request, res: Response) => {
   try {
-    const { examId } = req.params;
+    const examId = req.params.examId;
     const teacherId = req.user?.teacher?.id;
 
     if (!teacherId) {

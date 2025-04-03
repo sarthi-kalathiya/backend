@@ -1,5 +1,17 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
+import { 
+  AssignExamResponse, 
+  ToggleBanResponse,
+  ExamResultsResponse,
+  StudentResultResponse,
+  AnswerSheetWithResponses,
+  AntiCheatingLog,
+  PrismaStudent,
+  BannedStudentInfo,
+  PrismaStudentExam,
+  PrismaResult
+} from "../models/teacherExam.model";
 
 const prisma = new PrismaClient();
 
@@ -8,7 +20,7 @@ export const assignExamToStudents = async (
   examId: string,
   studentIds: string[],
   teacherId: string
-) => {
+): Promise<AssignExamResponse> => {
   if (studentIds.length === 0) {
     throw new Error("No student IDs provided");
   }
@@ -57,13 +69,13 @@ export const assignExamToStudents = async (
       },
     });
 
-    const bannedStudentInfo = bannedStudents.map(
-      (student: { id: string; user: { name: string; email: string } }) => ({
-        id: student.id,
-        name: student.user.name,
-        email: student.user.email,
-      })
-    );
+    // Create info objects for banned students
+    const bannedStudentInfo = bannedStudents.map((student) => ({
+      id: student.id,
+      firstName: student.user.firstName,
+      lastName: student.user.lastName,
+      email: student.user.email,
+    }));
 
     throw new Error("Cannot assign exam to banned students");
   }
@@ -137,7 +149,7 @@ export const assignExamToStudents = async (
 export const getAssignedStudents = async (
   examId: string,
   teacherId: string
-) => {
+): Promise<PrismaStudentExam[]> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -172,7 +184,7 @@ export const toggleStudentBan = async (
   examId: string,
   studentId: string,
   teacherId: string
-) => {
+): Promise<ToggleBanResponse> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -243,7 +255,7 @@ export const toggleStudentBan = async (
           where: { id: existingAssignment.id },
         });
         logger.info(
-          `Banned student ${studentId} (${existingAssignment.student.user.name}) from exam ${examId} and removed assignment`
+          `Banned student ${studentId} (${existingAssignment.student.user.firstName} ${existingAssignment.student.user.lastName}) from exam ${examId} and removed assignment`
         );
         return { action: "banned", removedAssignment: true };
       } else {
@@ -266,7 +278,10 @@ export const toggleStudentBan = async (
 };
 
 // Get all results for an exam
-export const getExamResults = async (examId: string, teacherId: string) => {
+export const getExamResults = async (
+  examId: string, 
+  teacherId: string
+): Promise<ExamResultsResponse> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -310,7 +325,7 @@ export const getStudentResult = async (
   examId: string,
   studentId: string,
   teacherId: string
-) => {
+): Promise<StudentResultResponse> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -359,7 +374,7 @@ export const getStudentAnswerSheet = async (
   examId: string,
   studentId: string,
   teacherId: string
-) => {
+): Promise<AnswerSheetWithResponses> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -399,7 +414,7 @@ export const getStudentAnswerSheet = async (
   logger.info(
     `Retrieved answer sheet for student ${studentId}, exam ${examId}`
   );
-  return answerSheet;
+  return answerSheet as AnswerSheetWithResponses;
 };
 
 // Get cheating logs for a student
@@ -407,7 +422,7 @@ export const getStudentCheatLogs = async (
   examId: string,
   studentId: string,
   teacherId: string
-) => {
+): Promise<AntiCheatingLog[]> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -435,11 +450,14 @@ export const getStudentCheatLogs = async (
   logger.info(
     `Retrieved ${cheatLogs.length} cheat logs for student ${studentId}, exam ${examId}`
   );
-  return cheatLogs;
+  return cheatLogs as AntiCheatingLog[];
 };
 
 // Get banned students for an exam
-export const getBannedStudents = async (examId: string, teacherId: string) => {
+export const getBannedStudents = async (
+  examId: string, 
+  teacherId: string
+): Promise<PrismaStudent[]> => {
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -462,5 +480,5 @@ export const getBannedStudents = async (examId: string, teacherId: string) => {
   logger.info(
     `Retrieved ${exam.bannedStudents.length} banned students for exam ${examId}`
   );
-  return exam.bannedStudents;
+  return exam.bannedStudents as PrismaStudent[];
 };

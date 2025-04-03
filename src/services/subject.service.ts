@@ -263,6 +263,11 @@ export const subjectService = {
       throw new NotFoundError("User not found");
     }
 
+    
+    if (subjectIds.length === 0) {
+      throw new BadRequestError("Please provide an array of subject IDs");
+    }
+
     const subjects = await prisma.subject.findMany({
       where: { id: { in: subjectIds } },
     });

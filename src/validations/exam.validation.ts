@@ -95,6 +95,15 @@ export const assignExamSchema = {
   studentIds: validators.compose(validators.required, validators.array),
 };
 
+// exam id parameter validation schema
+export const examIdParamSchema = {
+  examId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  ),
+};
+
 // ----
 // Option validation schema
 export const optionSchema = {

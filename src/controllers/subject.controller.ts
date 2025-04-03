@@ -168,10 +168,6 @@ export const assignSubjectsToUser = async (
     const { userId } = req.params;
     const { subjectIds } = req.body;
 
-    if (subjectIds.length === 0) {
-      throw new BadRequestError("Please provide an array of subject IDs");
-    }
-
     const subjects: SubjectResponseDto[] = await subjectService.assignSubjectsToUser(
       userId,
       subjectIds

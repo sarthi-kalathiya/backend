@@ -13,27 +13,37 @@ const router = Router();
 
 console.log("Exam routes file loaded");
 
-// Teacher exam routes
+// get teacher exams
 router.get("/exams", authenticateTeacher, requireProfileCompletion, examController.getTeacherExams);
+
+// create exam
 router.post(
   "/exams",
   authenticateTeacher,
   validateFields(createExamSchema),
   examController.createExam
 );
+
+// get exam by id
 router.get("/exams/:examId", authenticateTeacher, examController.getExamById);
+
+// update exam
 router.put(
   "/exams/:examId",
   authenticateTeacher,
   validateFields(updateExamSchema),
   examController.updateExam
 );
+
+// update exam status
 router.patch(
   "/exams/:examId/status",
   authenticateTeacher,
   validateFields(updateExamStatusSchema),
   examController.updateExamStatus
 );
+
+// validate exam
 router.get(
   "/exams/:examId/validate",
   authenticateTeacher,
@@ -46,23 +56,31 @@ router.get(
   authenticateTeacher,
   examController.getExamQuestions
 );
+
+// add question
 router.post(
   "/exams/:examId/question",
   authenticateTeacher,
   validateFields(questionSchema),
   examController.addQuestion
 );
+
+// add bulk questions
 router.post(
   "/exams/:examId/questions",
   authenticateTeacher,
   examController.addBulkQuestions
 );
+
+// update question
 router.put(
   "/exams/:examId/questions/:questionId",
   authenticateTeacher,
   validateFields(questionSchema),
   examController.updateQuestion
 );
+
+// delete question
 router.delete(
   "/exams/:examId/questions/:questionId",
   authenticateTeacher,

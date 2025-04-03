@@ -2,7 +2,8 @@ import { Router } from "express";
 import * as teacherExamController from "../controllers/teacherExam.controller";
 import { authenticateTeacher } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
-import { assignExamSchema } from "../validations/exam.validation";
+import { assignExamSchema, examIdParamSchema } from "../validations/exam.validation";
+import { studentIdParamSchema } from "../validations/user.validation";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ const router = Router();
 router.post(
   "/exams/:examId/assign",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
   validateFields(assignExamSchema),
   teacherExamController.assignExamToStudents
 );
@@ -18,13 +20,15 @@ router.post(
 router.get(
   "/exams/:examId/students",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
   teacherExamController.getAssignedStudents
 );
 
-// Get banned students  
+// Get banned students
 router.get(
   "/exams/:examId/banned-students",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
   teacherExamController.getBannedStudents
 );
 
@@ -32,6 +36,8 @@ router.get(
 router.patch(
   "/exams/:examId/students/:studentId/ban",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(studentIdParamSchema, "params"),
   teacherExamController.toggleStudentBan
 );
 
@@ -39,6 +45,7 @@ router.patch(
 router.get(
   "/exams/:examId/results",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
   teacherExamController.getExamResults
 );
 
@@ -46,6 +53,8 @@ router.get(
 router.get( 
   "/exams/:examId/students/:studentId/result",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(studentIdParamSchema, "params"),
   teacherExamController.getStudentResult
 );
 
@@ -53,6 +62,8 @@ router.get(
 router.get(
   "/exams/:examId/students/:studentId/answer-sheet",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(studentIdParamSchema, "params"),
   teacherExamController.getStudentAnswerSheet
 );
 
@@ -60,6 +71,8 @@ router.get(
 router.get(
   "/exams/:examId/students/:studentId/cheat-logs",
   authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(studentIdParamSchema, "params"),
   teacherExamController.getStudentCheatLogs
 );
 

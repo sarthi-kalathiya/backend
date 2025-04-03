@@ -168,4 +168,13 @@ export const userIdParamSchema = {
   )
 };
 
+// Student ID parameter validation schema
+export const studentIdParamSchema = {
+  studentId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  )
+};
+
 // ----

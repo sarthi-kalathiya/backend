@@ -17,7 +17,7 @@ types - all done
 utils - all done
 validations - all done
 
-
+ids no array validate
 once roll is assigned there should be no way back to change it
 models no proper use, validations schema no proper use
 check profile status ne eliminate kri ne frontend
