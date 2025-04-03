@@ -52,7 +52,6 @@ export const refreshTokenSchema = {
   refreshToken: validators.compose(validators.required, validators.string),
 };
 
-// ----
 // Change password validation schema
 export const changePasswordSchema = {
   currentPassword: validators.compose(validators.required, validators.string),
@@ -71,3 +70,5 @@ export const resetPasswordSchema = {
     validators.password
   ),
 };
+
+// ----

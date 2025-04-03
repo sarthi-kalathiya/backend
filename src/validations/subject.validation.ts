@@ -66,4 +66,5 @@ export const deleteSubjectSchema = {
     validators.uuid
   ),
 };
+
 // ----

@@ -12,12 +12,11 @@ import {
   createUserSchema,
   updateUserSchema,
   updateUserStatusSchema,
-  changePasswordSchema,
-  resetPasswordSchema,
   teacherProfileSchema,
   studentProfileSchema,
   userProfileUpdateSchema,
 } from "../validations/user.validation";
+import { changePasswordSchema , resetPasswordSchema } from "../validations/auth.validation";
 
 const router = Router();
 

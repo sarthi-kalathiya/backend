@@ -128,27 +128,4 @@ export const userProfileUpdateSchema = {
   studentProfile: validators.object,
 };
 
-// Change password validation schema
-export const changePasswordSchema = {
-  currentPassword: validators.compose(
-    validators.required,
-    validators.string,
-    validators.password
-  ),
-  newPassword: validators.compose(
-    validators.required,
-    validators.string,
-    validators.password
-  ),
-};
-
-// Reset password validation schema
-export const resetPasswordSchema = {
-  newPassword: validators.compose(
-    validators.required,
-    validators.string,
-    validators.password
-  ),
-};
-
 // ----
