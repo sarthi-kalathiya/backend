@@ -6,6 +6,7 @@ import {
   AdminSignupDto,
   LoginDto,
   RefreshTokenDto,
+  TokenResponse,
 } from "../models/auth.model";
 
 // Admin signup
@@ -16,7 +17,7 @@ export const adminSignup = async (
 ) => {
   try {
     const adminData: AdminSignupDto = req.body;
-    const result = await authService.adminSignup(adminData);
+    const result: TokenResponse = await authService.adminSignup(adminData);
     return successResponse(res, result, "Admin registered successfully", 201);
   } catch (error) {
     next(error);
@@ -31,8 +32,7 @@ export const userSignin = async (
 ) => {
   try {
     const credentials: LoginDto = req.body;
-
-    const result = await authService.signin(credentials);
+    const result: TokenResponse = await authService.signin(credentials);
     return successResponse(res, result, "User logged in successfully");
   } catch (error) {
     next(error);
@@ -47,7 +47,7 @@ export const refreshToken = async (
 ) => {
   try {
     const { refreshToken } = req.body as RefreshTokenDto;
-    const result = await authService.refreshAuthToken(refreshToken);
+    const result: TokenResponse = await authService.refreshAuthToken(refreshToken);
     return successResponse(res, result, "Token refreshed successfully");
   } catch (error) {
     next(error);
