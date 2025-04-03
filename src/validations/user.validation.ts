@@ -128,4 +128,44 @@ export const userProfileUpdateSchema = {
   studentProfile: validators.object,
 };
 
+// Query parameter validation schemas
+export const userQuerySchema = {
+  page: validators.compose(
+    validators.number,
+    validators.min(1)
+  ),
+  limit: validators.compose(
+    validators.number,
+    validators.min(1),
+    validators.max(100)
+  ),
+  search: validators.compose(
+    validators.string,
+    validators.minLength(2),
+    validators.maxLength(50)
+  ),
+  role: validators.compose(
+    validators.string,
+    validators.oneOf(Object.values(UserRole))
+  ),
+  isActive: validators.boolean,
+  sortBy: validators.compose(
+    validators.string,
+    validators.oneOf(['firstName', 'lastName', 'email', 'createdAt', 'updatedAt'])
+  ),
+  sortOrder: validators.compose(
+    validators.string,
+    validators.oneOf(['asc', 'desc'])
+  )
+};
+
+// Route parameter validation schemas
+export const userIdParamSchema = {
+  userId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  )
+};
+
 // ----

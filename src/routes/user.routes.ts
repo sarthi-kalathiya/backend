@@ -15,6 +15,8 @@ import {
   teacherProfileSchema,
   studentProfileSchema,
   userProfileUpdateSchema,
+  userQuerySchema,
+  userIdParamSchema,
 } from "../validations/user.validation";
 import { changePasswordSchema , resetPasswordSchema } from "../validations/auth.validation";
 
@@ -62,12 +64,18 @@ router.patch(
 );
 
 // Admin user management routes - with admin authentication
-router.get("/admin/users", authenticateAdmin, userController.getAllUsers);
+router.get(
+  "/admin/users",
+  authenticateAdmin,
+  validateFields(userQuerySchema, "query"),
+  userController.getAllUsers
+);
 
 // Get user by ID - require admin authentication
 router.get(
   "/admin/users/:userId",
   authenticateAdmin,
+  validateFields(userIdParamSchema, "params"),
   userController.getUserById
 );
 
@@ -83,6 +91,7 @@ router.post(
 router.put(
   "/admin/users/:userId",
   authenticateAdmin,
+  validateFields(userIdParamSchema, "params"),
   validateFields(updateUserSchema),
   userController.updateUser
 );
@@ -91,6 +100,7 @@ router.put(
 router.patch(
   "/admin/users/:userId/status",
   authenticateAdmin,
+  validateFields(userIdParamSchema, "params"),
   validateFields(updateUserStatusSchema),
   userController.updateUserStatus
 );
@@ -99,6 +109,7 @@ router.patch(
 router.patch(
   "/admin/users/:userId/reset-password",
   authenticateAdmin,
+  validateFields(userIdParamSchema, "params"),
   validateFields(resetPasswordSchema),
   userController.resetPassword
 );
@@ -107,6 +118,7 @@ router.patch(
 router.delete(
   "/admin/users/:userId",
   authenticateAdmin,
+  validateFields(userIdParamSchema, "params"),
   userController.deleteUser
 );
 
