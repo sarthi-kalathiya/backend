@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from "express";
-import * as subjectService from "../services/subject.service";
+import { subjectService } from "../services/subject.service";
 import { BadRequestError } from "../utils/errors";
 import { successResponse, createdResponse } from "../utils/response";
 import { PrismaClient } from "@prisma/client";
+import { SubjectResponseDto } from "../models/subject.model";
 
 const prisma = new PrismaClient();
 
@@ -40,12 +41,7 @@ export const getAllSubjects = async (
       result.data,
       "Subjects retrieved successfully",
       {
-        pagination: {
-          totalItems: result.totalItems,
-          totalPages: result.totalPages,
-          currentPage: page,
-          pageSize,
-        },
+        pagination: result.pagination,
       }
     );
   } catch (error) {
@@ -61,7 +57,7 @@ export const getSubjectById = async (
   next: NextFunction
 ) => {
   try {
-    const subject = await subjectService.getSubjectById(req.params.subjectId);
+    const subject: SubjectResponseDto = await subjectService.getSubjectById(req.params.subjectId);
     return successResponse(res, subject, "Subject retrieved successfully");
   } catch (error) {
     next(error);
@@ -80,7 +76,7 @@ export const createSubject = async (
     // Parse isActive boolean
     const activeStatus = isActive === undefined ? true : Boolean(isActive);
 
-    const subject = await subjectService.createSubject(
+    const subject: SubjectResponseDto = await subjectService.createSubject(
       name,
       code,
       description,
@@ -105,7 +101,7 @@ export const updateSubject = async (
     // Parse isActive boolean if provided
     const activeStatus = isActive === undefined ? undefined : Boolean(isActive);
 
-    const subject = await subjectService.updateSubject(
+    const subject: SubjectResponseDto = await subjectService.updateSubject(
       req.params.subjectId,
       name,
       code,
@@ -128,7 +124,7 @@ export const updateSubjectStatus = async (
   try {
     const { isActive } = req.body;
 
-    const subject = await subjectService.updateSubjectStatus(
+    const subject: SubjectResponseDto = await subjectService.updateSubjectStatus(
       req.params.subjectId,
       isActive
     );
@@ -151,8 +147,7 @@ export const getUserSubjects = async (
   try {
     const { userId } = req.params;
 
-    // Use the service method instead of direct Prisma calls
-    const subjects = await subjectService.getUserSubjects(userId);
+    const subjects: SubjectResponseDto[] = await subjectService.getUserSubjects(userId);
     return successResponse(
       res,
       subjects,
@@ -177,8 +172,7 @@ export const assignSubjectsToUser = async (
       throw new BadRequestError("Please provide an array of subject IDs");
     }
 
-    // Use the service method instead of direct Prisma calls
-    const subjects = await subjectService.assignSubjectsToUser(
+    const subjects: SubjectResponseDto[] = await subjectService.assignSubjectsToUser(
       userId,
       subjectIds
     );
@@ -201,8 +195,7 @@ export const assignSubjectToUser = async (
   try {
     const { userId, subjectId } = req.params;
 
-    // Use the service method instead of direct Prisma calls
-    const subjects = await subjectService.assignSubjectToUser(
+    const subjects: SubjectResponseDto[] = await subjectService.assignSubjectToUser(
       userId,
       subjectId
     );

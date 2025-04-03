@@ -67,4 +67,13 @@ export const deleteSubjectSchema = {
   ),
 };
 
+// Subject ID parameter validation schema
+export const subjectIdParamSchema = {
+  subjectId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  ),
+};
+
 // ----
