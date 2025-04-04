@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-// import * as userService from "../services/user.service";
-import { userService } from "../services/user.service";
-import { subjectService } from "../services/subject.service";
+import * as userService from "../services/user.service";
+import {subjectService }from "../services/subject.service";
 import { UnauthorizedError } from "../utils/errors";
 import {
   successResponse,
@@ -9,22 +8,6 @@ import {
   noContentResponse,
 } from "../utils/response";
 import { UserRole } from "../constants/user";
-import { 
-  UserResponseDto, 
-  UserWithProfileResponseDto,
-  TeacherResponseDto,
-  StudentResponseDto,
-  UserQueryParams,
-  CreateUserDto,
-  UpdateUserDto,
-  TeacherProfileDto,
-  StudentProfileDto,
-  UserProfileUpdateDto,
-} from "../models/user.model";
-import {
-  ChangePasswordDto,
-  ResetPasswordDto
-} from "../models/auth.model";
 
 // Change password
 export const changePassword = async (
@@ -33,7 +16,7 @@ export const changePassword = async (
   next: NextFunction
 ) => {
   try {
-    const { currentPassword, newPassword } = req.body as ChangePasswordDto;
+    const { currentPassword, newPassword } = req.body;
     const result = await userService.changeUserPassword(
       req.user!.id,
       currentPassword,
@@ -53,7 +36,7 @@ export const getAllUsers = async (
 ) => {
   try {
     // Get paginated users with pagination info
-    const result = await userService.getAllUsers(req.query as UserQueryParams);
+    const result = await userService.getAllUsers(req.query);
 
     // Return with pagination metadata
     return successResponse(res, result.users, "Users retrieved successfully", {
@@ -71,7 +54,7 @@ export const getUserById = async (
   next: NextFunction
 ) => {
   try {
-    const user: UserWithProfileResponseDto = await userService.getUserById(req.params.userId);
+    const user = await userService.getUserById(req.params.userId);
 
     let subjects: any[] = [];
     try {
@@ -99,8 +82,18 @@ export const createUser = async (
   next: NextFunction
 ) => {
   try {
-    const userData: CreateUserDto = req.body;
-    const newUser: UserResponseDto = await userService.createUser(userData);
+    const { firstName, lastName, email, password, role, contactNumber } =
+      req.body;
+
+    const newUser = await userService.createUser({
+      firstName,
+      lastName,
+      email,
+      password,
+      role,
+      contactNumber,
+    });
+
     return createdResponse(res, newUser, "User created successfully");
   } catch (error) {
     next(error);
@@ -114,8 +107,13 @@ export const updateUser = async (
   next: NextFunction
 ) => {
   try {
-    const userData: UpdateUserDto = req.body;
-    const updatedUser: UserResponseDto = await userService.updateUser(req.params.userId, userData);
+    const { firstName, lastName, email, contactNumber } = req.body;
+    const updatedUser = await userService.updateUser(req.params.userId, {
+      firstName,
+      lastName,
+      email,
+      contactNumber,
+    });
     return successResponse(res, updatedUser, "User updated successfully");
   } catch (error) {
     next(error);
@@ -130,7 +128,8 @@ export const updateUserStatus = async (
 ) => {
   try {
     const { isActive } = req.body;
-    const updatedUser: UserWithProfileResponseDto = await userService.updateUserStatus(
+
+    const updatedUser = await userService.updateUserStatus(
       req.params.userId,
       isActive
     );
@@ -162,9 +161,9 @@ export const resetPassword = async (
   next: NextFunction
 ) => {
   try {
-    const { newPassword } = req.body as ResetPasswordDto;
+    const { newPassword } = req.body;
     // Get user info first to include in the message
-    const user: UserResponseDto = await userService.getUserById(req.params.userId);
+    const user = await userService.getUserById(req.params.userId);
 
     // Reset the password
     const result = await userService.resetUserPassword(
@@ -217,8 +216,8 @@ export const createTeacherProfile = async (
   next: NextFunction
 ) => {
   try {
-    const teacherProfileData: TeacherProfileDto = req.body;
-    const result: TeacherResponseDto = await userService.createTeacherProfile(
+    const teacherProfileData = req.body;
+    const result = await userService.createTeacherProfile(
       req.user!.id,
       teacherProfileData
     );
@@ -236,8 +235,8 @@ export const createStudentProfile = async (
   next: NextFunction
 ) => {
   try {
-    const studentProfileData: StudentProfileDto = req.body;
-    const result: StudentResponseDto = await userService.createStudentProfile(
+    const studentProfileData = req.body;
+    const result = await userService.createStudentProfile(
       req.user!.id,
       studentProfileData
     );
@@ -255,7 +254,7 @@ export const getUserProfile = async (
   next: NextFunction
 ) => {
   try {
-    const userProfile: UserWithProfileResponseDto = await userService.getUserWithProfile(req.user!.id);
+    const userProfile = await userService.getUserWithProfile(req.user!.id);
 
     return successResponse(
       res,
@@ -274,8 +273,8 @@ export const updateUserProfile = async (
   next: NextFunction
 ) => {
   try {
-    const profileData: UserProfileUpdateDto = req.body;
-    const updatedProfile: UserWithProfileResponseDto = await userService.updateUserProfile(
+    const profileData = req.body;
+    const updatedProfile = await userService.updateUserProfile(
       req.user!.id,
       profileData
     );
@@ -294,7 +293,9 @@ export const deleteUser = async (
 ) => {
   try {
     const { userId } = req.params;
+
     await userService.deleteUser(userId);
+
     return noContentResponse(res);
   } catch (error) {
     next(error);
