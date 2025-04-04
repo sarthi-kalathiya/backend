@@ -2,16 +2,42 @@ import { Request, Response } from "express";
 import { logger } from "../utils/logger";
 import { successResponse, warningResponse } from "../utils/response";
 import * as teacherExamService from "../services/teacherExam.service";
-import { AssignExamDto } from "../models/exam.model";
+import { 
+  AssignExamDto, 
+} from "../models/exam.model";
+import {
+  ExamIdParam,
+  StudentIdParam,
+  AssignExamResponse,
+  PrismaStudentExam,
+  ToggleBanResponse,
+  ExamResultsResponse,
+  StudentResultResponse,
+  AnswerSheetWithResponses,
+  AntiCheatingLog,
+  PrismaStudent
+} from "../models/teacherExam.model";
+import { User } from "../models/user.model";
 
-// Extend Express Request type
+// Extend Express Request type with proper types
 declare global {
   namespace Express {
     interface Request {
-      user?: any; // This matches how the auth middleware attaches the user
+      // Define user with proper type structure based on auth middleware
+      user?: User & {
+        teacher?: {
+          id: string;
+        };
+        student?: {
+          id: string;
+        };
+      };
     }
   }
 }
+
+// Type for URL parameters with both examId and studentId
+interface ExamAndStudentParams extends ExamIdParam, StudentIdParam {}
 
 // Assign exam to students
 export const assignExamToStudents = async (req: Request, res: Response) => {
@@ -23,8 +49,11 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
     if (!teacherId) {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
+    if (!studentIds || studentIds.length === 0) {
+      return warningResponse(res, null, "No student IDs provided", 400);
+    }
 
-    const result = await teacherExamService.assignExamToStudents(
+    const result: AssignExamResponse = await teacherExamService.assignExamToStudents(
       examId,
       studentIds,
       teacherId
@@ -36,23 +65,24 @@ export const assignExamToStudents = async (req: Request, res: Response) => {
       `Assigned exam to ${result.assignments.length} students`,
       201
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error assigning exam to students:", error);
-    return warningResponse(res, null, error.message, 400);
+    return warningResponse(res, null, errorMessage, 400);
   }
 };
 
 // Get students assigned to an exam with status
 export const getAssignedStudents = async (req: Request, res: Response) => {
   try {
-    const { examId } = req.params;
+    const examId = req.params.examId;
     const teacherId = req.user?.teacher?.id;
 
     if (!teacherId) {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const studentExams = await teacherExamService.getAssignedStudents(
+    const studentExams: PrismaStudentExam[] = await teacherExamService.getAssignedStudents(
       examId,
       teacherId
     );
@@ -62,9 +92,10 @@ export const getAssignedStudents = async (req: Request, res: Response) => {
       studentExams,
       `Retrieved ${studentExams.length} students assigned to exam`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting assigned students:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
@@ -78,7 +109,7 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const result = await teacherExamService.toggleStudentBan(
+    const result: ToggleBanResponse = await teacherExamService.toggleStudentBan(
       examId,
       studentId,
       teacherId
@@ -106,9 +137,10 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
     }
 
     return successResponse(res, result, "Student banned successfully");
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error toggling student ban:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
@@ -122,16 +154,17 @@ export const getExamResults = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const results = await teacherExamService.getExamResults(examId, teacherId);
+    const results: ExamResultsResponse = await teacherExamService.getExamResults(examId, teacherId);
 
     return successResponse(
       res,
       results,
       `Retrieved ${results.results.length} results for exam`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting exam results:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
@@ -145,16 +178,17 @@ export const getStudentResult = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const result = await teacherExamService.getStudentResult(
+    const result: StudentResultResponse = await teacherExamService.getStudentResult(
       examId,
       studentId,
       teacherId
     );
 
     return successResponse(res, result, "Result retrieved successfully");
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting student result:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
@@ -168,7 +202,7 @@ export const getStudentAnswerSheet = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const answerSheet = await teacherExamService.getStudentAnswerSheet(
+    const answerSheet: AnswerSheetWithResponses = await teacherExamService.getStudentAnswerSheet(
       examId,
       studentId,
       teacherId
@@ -179,9 +213,10 @@ export const getStudentAnswerSheet = async (req: Request, res: Response) => {
       answerSheet,
       "Answer sheet retrieved successfully"
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting student answer sheet:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
@@ -195,7 +230,7 @@ export const getStudentCheatLogs = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const cheatLogs = await teacherExamService.getStudentCheatLogs(
+    const cheatLogs: AntiCheatingLog[] = await teacherExamService.getStudentCheatLogs(
       examId,
       studentId,
       teacherId
@@ -206,23 +241,24 @@ export const getStudentCheatLogs = async (req: Request, res: Response) => {
       cheatLogs,
       `Retrieved ${cheatLogs.length} cheat logs`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting student cheat logs:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };
 
 // Get banned students for an exam
 export const getBannedStudents = async (req: Request, res: Response) => {
   try {
-    const { examId } = req.params;
+    const examId = req.params.examId;
     const teacherId = req.user?.teacher?.id;
 
     if (!teacherId) {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
-    const bannedStudents = await teacherExamService.getBannedStudents(
+    const bannedStudents: PrismaStudent[] = await teacherExamService.getBannedStudents(
       examId,
       teacherId
     );
@@ -232,8 +268,9 @@ export const getBannedStudents = async (req: Request, res: Response) => {
       bannedStudents,
       `Retrieved ${bannedStudents.length} banned students`
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     logger.error("Error getting banned students:", error);
-    return warningResponse(res, null, error.message, 404);
+    return warningResponse(res, null, errorMessage, 404);
   }
 };

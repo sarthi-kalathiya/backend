@@ -6,8 +6,9 @@ import {
   createExamSchema,
   updateExamSchema,
   updateExamStatusSchema,
-  questionSchema,
+  examIdParamSchema,
 } from "../validations/exam.validation";
+import { questionIdParamSchema, updateQuestionSchema, questionSchema, bulkQuestionsSchema } from "../validations/question.validation";
 
 const router = Router();
 
@@ -20,17 +21,20 @@ router.get("/exams", authenticateTeacher, requireProfileCompletion, examControll
 router.post(
   "/exams",
   authenticateTeacher,
+  requireProfileCompletion,
   validateFields(createExamSchema),
   examController.createExam
 );
 
 // get exam by id
-router.get("/exams/:examId", authenticateTeacher, examController.getExamById);
+router.get("/exams/:examId", authenticateTeacher, requireProfileCompletion, examController.getExamById);
 
 // update exam
 router.put(
   "/exams/:examId",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
   validateFields(updateExamSchema),
   examController.updateExam
 );
@@ -39,6 +43,8 @@ router.put(
 router.patch(
   "/exams/:examId/status",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
   validateFields(updateExamStatusSchema),
   examController.updateExamStatus
 );
@@ -47,6 +53,8 @@ router.patch(
 router.get(
   "/exams/:examId/validate",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
   examController.validateExam
 );
 
@@ -54,6 +62,8 @@ router.get(
 router.get(
   "/exams/:examId/questions",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
   examController.getExamQuestions
 );
 
@@ -61,6 +71,8 @@ router.get(
 router.post(
   "/exams/:examId/question",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
   validateFields(questionSchema),
   examController.addQuestion
 );
@@ -69,6 +81,9 @@ router.post(
 router.post(
   "/exams/:examId/questions",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(bulkQuestionsSchema),
   examController.addBulkQuestions
 );
 
@@ -76,7 +91,10 @@ router.post(
 router.put(
   "/exams/:examId/questions/:questionId",
   authenticateTeacher,
-  validateFields(questionSchema),
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(questionIdParamSchema, "params"),
+  validateFields(updateQuestionSchema),
   examController.updateQuestion
 );
 
@@ -84,6 +102,9 @@ router.put(
 router.delete(
   "/exams/:examId/questions/:questionId",
   authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(questionIdParamSchema, "params"),
   examController.deactivateQuestion
 );
 

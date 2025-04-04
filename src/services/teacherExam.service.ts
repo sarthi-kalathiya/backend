@@ -21,9 +21,7 @@ export const assignExamToStudents = async (
   studentIds: string[],
   teacherId: string
 ): Promise<AssignExamResponse> => {
-  if (studentIds.length === 0) {
-    throw new Error("No student IDs provided");
-  }
+ 
 
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
@@ -38,6 +36,25 @@ export const assignExamToStudents = async (
 
   if (!exam) {
     throw new Error("Exam not found or unauthorized");
+  }
+
+  // Validate that the student IDs exist
+  const existingStudents = await prisma.student.findMany({
+    where: {
+      id: {
+        in: studentIds
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  const existingStudentIds = existingStudents.map(student => student.id);
+  const nonExistentStudentIds = studentIds.filter(id => !existingStudentIds.includes(id));
+
+  if (nonExistentStudentIds.length > 0) {
+    throw new Error(`The following student IDs do not exist: ${nonExistentStudentIds.join(', ')}`);
   }
 
   // Check if the exam is valid (question count and total marks match)
@@ -197,6 +214,17 @@ export const toggleStudentBan = async (
     throw new Error("Exam not found or unauthorized");
   }
 
+  // Verify the student exists
+  const student = await prisma.student.findUnique({
+    where: {
+      id: studentId
+    }
+  });
+
+  if (!student) {
+    throw new Error(`Student with ID ${studentId} does not exist`);
+  }
+
   // Check if student is banned
   const isBanned = await prisma.exam.findFirst({
     where: {
@@ -338,6 +366,17 @@ export const getStudentResult = async (
     throw new Error("Exam not found or unauthorized");
   }
 
+  // Verify the student exists
+  const student = await prisma.student.findUnique({
+    where: {
+      id: studentId
+    }
+  });
+
+  if (!student) {
+    throw new Error(`Student with ID ${studentId} does not exist`);
+  }
+
   const result = await prisma.result.findFirst({
     where: {
       studentExam: {
@@ -387,6 +426,17 @@ export const getStudentAnswerSheet = async (
     throw new Error("Exam not found or unauthorized");
   }
 
+  // Verify the student exists
+  const student = await prisma.student.findUnique({
+    where: {
+      id: studentId
+    }
+  });
+
+  if (!student) {
+    throw new Error(`Student with ID ${studentId} does not exist`);
+  }
+
   const answerSheet = await prisma.answerSheet.findFirst({
     where: {
       studentExam: {
@@ -433,6 +483,17 @@ export const getStudentCheatLogs = async (
 
   if (!exam) {
     throw new Error("Exam not found or unauthorized");
+  }
+
+  // Verify the student exists
+  const student = await prisma.student.findUnique({
+    where: {
+      id: studentId
+    }
+  });
+
+  if (!student) {
+    throw new Error(`Student with ID ${studentId} does not exist`);
   }
 
   const cheatLogs = await prisma.antiCheatingLog.findMany({

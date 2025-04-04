@@ -64,6 +64,7 @@ export const getExamById = async (examId: string, teacherId?: string) => {
   const exam = await prisma.exam.findUnique({
     where: {
       id: examId,
+      ownerId: teacherId,
     },
     include: {
       subject: true,
@@ -71,7 +72,8 @@ export const getExamById = async (examId: string, teacherId?: string) => {
         include: {
           user: {
             select: {
-              name: true,
+              firstName: true,
+              lastName: true,
               email: true,
             },
           },
@@ -96,11 +98,6 @@ export const getExamById = async (examId: string, teacherId?: string) => {
 
   if (!exam) {
     throw new NotFoundError("Exam not found");
-  }
-
-  // Check if the teacher is the owner of the exam
-  if (teacherId && exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to view this exam");
   }
 
   return exam;
@@ -173,7 +170,7 @@ export const updateExam = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId  , ownerId: teacherId },
     include: {
       studentExams: true,
       questions: true,
@@ -184,14 +181,10 @@ export const updateExam = async (
     throw new NotFoundError("Exam not found");
   }
 
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to update this exam");
-  }
-
   // Check if exam has already been taken by any student
   if (
     exam.studentExams.some(
-      (se: StudentExam) => se.status === ExamStatus.COMPLETED
+      (se) => se.status === ExamStatus.COMPLETED
     )
   ) {
     throw new BadRequestError("Cannot update exam that has already been taken");
@@ -306,7 +299,7 @@ export const updateExamStatus = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
   });
 
   if (!exam) {
@@ -345,15 +338,11 @@ export const updateExamStatus = async (
 export const getExamQuestions = async (examId: string, teacherId: string) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
   });
 
   if (!exam) {
     throw new NotFoundError("Exam not found");
-  }
-
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to view this exam");
   }
 
   // Get questions
@@ -407,7 +396,7 @@ export const addQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
     include: {
       studentExams: true,
     },
@@ -417,14 +406,14 @@ export const addQuestion = async (
     throw new NotFoundError("Exam not found");
   }
 
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to modify this exam");
-  }
-
   // Check if exam has already been taken by any student
-  // if (exam.studentExams.some((se: StudentExam) => se.status === ExamStatus.COMPLETED)) {
-  //   throw new BadRequestError('Cannot modify exam that has already been taken');
-  // }
+  if (
+    exam.studentExams.some(
+      (se) => se.status === ExamStatus.COMPLETED
+    )
+  ) {
+    throw new BadRequestError("Cannot modify exam that has already been taken");
+  }
 
   // Check if we're exceeding the number of questions using the cached counter
   if (exam.currentQuestionCount >= exam.numQuestions) {
@@ -481,7 +470,7 @@ export const addQuestion = async (
   }
 
   // Create question with options in a transaction
-  const result = await prisma.$transaction(async (tx: PrismaClient) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Create the question first
     const question = await tx.question.create({
       data: {
@@ -572,7 +561,7 @@ export const updateQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
     include: {
       studentExams: true,
     },
@@ -582,14 +571,10 @@ export const updateQuestion = async (
     throw new NotFoundError("Exam not found");
   }
 
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to modify this exam");
-  }
-
   // Check if exam has already been taken by any student
   if (
     exam.studentExams.some(
-      (se: StudentExam) => se.status === ExamStatus.COMPLETED
+      (se) => se.status === ExamStatus.COMPLETED
     )
   ) {
     throw new BadRequestError("Cannot modify exam that has already been taken");
@@ -653,7 +638,7 @@ export const updateQuestion = async (
   }
 
   // Update question with options in a transaction
-  const result = await prisma.$transaction(async (tx: PrismaClient) => {
+  const result = await prisma.$transaction(async (tx) => {
     // Delete existing options
     await tx.option.deleteMany({
       where: { questionId },
@@ -742,15 +727,11 @@ export const deactivateQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
   });
 
   if (!exam) {
     throw new NotFoundError("Exam not found");
-  }
-
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to modify this exam");
   }
 
   // Verify question exists and belongs to this exam
@@ -770,7 +751,7 @@ export const deactivateQuestion = async (
   const questionMarks = Number(question.marks);
 
   // Delete the question and update aggregates in a transaction
-  await prisma.$transaction(async (tx: PrismaClient) => {
+  await prisma.$transaction(async (tx) => {
     // Delete options first
     await tx.option.deleteMany({
       where: { questionId },
@@ -830,7 +811,7 @@ export const addBulkQuestions = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId },
+    where: { id: examId , ownerId: teacherId },
     include: {
       questions: true,
       studentExams: true,
@@ -841,14 +822,10 @@ export const addBulkQuestions = async (
     throw new NotFoundError("Exam not found");
   }
 
-  if (exam.ownerId !== teacherId) {
-    throw new ForbiddenError("You do not have permission to modify this exam");
-  }
-
   // Check if exam has already been taken by any student
   if (
     exam.studentExams.some(
-      (se: StudentExam) => se.status === ExamStatus.COMPLETED
+      (se) => se.status === ExamStatus.COMPLETED
     )
   ) {
     throw new BadRequestError("Cannot modify exam that has already been taken");
@@ -930,7 +907,7 @@ export const addBulkQuestions = async (
 
   // Create all questions with options in a transaction
   const createdQuestions = await prisma.$transaction(
-    async (tx: PrismaClient) => {
+    async (tx) => {
       const createdQuestionsArray = [];
 
       for (const questionData of questionsData) {

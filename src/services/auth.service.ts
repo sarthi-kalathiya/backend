@@ -11,6 +11,7 @@ import { UserRole } from "../constants/user";
 import {
   AdminSignupDto,
   LoginDto,
+  RefreshTokenDto,
   TokenPayload,
   TokenResponse,
 } from "../models/auth.model";
@@ -154,6 +155,25 @@ export const signin = async (
   const accessToken = generateToken(user.id, user.role as UserRole);
   const refreshToken = generateRefreshToken(user.id, user.role as UserRole);
 
+  // Transform teacher/student data to match expected types
+  const teacherData = user.teacher 
+    ? {
+        ...user.teacher,
+        qualification: user.teacher.qualification || undefined,
+        expertise: user.teacher.expertise || undefined,
+        bio: user.teacher.bio || undefined
+      }
+    : null;
+    
+  const studentData = user.student
+    ? {
+        ...user.student,
+        rollNumber: user.student.rollNumber || undefined,
+        grade: user.student.grade || undefined,
+        parentContactNumber: user.student.parentContactNumber || undefined
+      }
+    : null;
+
   return {
     user: {
       id: user.id,
@@ -166,8 +186,8 @@ export const signin = async (
       profileCompleted: user.profileCompleted,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt,
-      teacher: user.teacher || null,
-      student: user.student || null,
+      teacher: teacherData,
+      student: studentData,
     },
     accessToken,
     refreshToken,
@@ -176,9 +196,9 @@ export const signin = async (
 
 // Refresh auth token
 export const refreshAuthToken = async (
-  refreshToken: string
+  refreshToken: RefreshTokenDto
 ): Promise<TokenResponse> => {
-  const decoded = verifyRefreshToken(refreshToken);
+  const decoded = verifyRefreshToken(refreshToken.refreshToken);
 
   // Verify user exists
   const user = await prisma.user.findUnique({

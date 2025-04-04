@@ -14,8 +14,6 @@ export const getAllSubjects = async (
   next: NextFunction
 ) => {
   try {
-    console.log("Query parameters:", req.query);
-
     // Extract query parameters
     const includeInactive = req.query.includeInactive === "true";
     const searchTerm = req.query.searchTerm as string | undefined;

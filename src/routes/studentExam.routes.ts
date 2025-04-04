@@ -1,24 +1,25 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import * as studentExamController from "../controllers/studentExam.controller";
-import { authenticateStudent } from "../middlewares/auth.middleware";
+import { authenticateStudent , requireProfileCompletion} from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
   examResponsesSchema,
-  cheatEventSchema,
 } from "../validations/studentExam.validation";
+import { examIdParamSchema, cheatEventSchema } from "../validations/exam.validation";
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // Apply authentication middleware to all routes
 router.use(authenticateStudent);
-
+// Apply profile completion middleware to all routes
+router.use(requireProfileCompletion);
 // Get all exams for student
 router.get("/exams", studentExamController.getStudentExams);
 
 // Check if student is banned from an exam
-router.get("/exams/:examId/ban-status", studentExamController.checkBanStatus);
+router.get("/exams/:examId/ban-status", validateFields(examIdParamSchema, "params"), studentExamController.checkBanStatus);
 
 // Get all upcoming exams for student
 router.get("/upcoming-exams", studentExamController.getUpcomingExams);

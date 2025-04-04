@@ -59,6 +59,7 @@ router.put(
 router.patch(
   "/password",
   authenticate,
+  requireProfileCompletion,
   validateFields(changePasswordSchema),
   userController.changePassword
 );

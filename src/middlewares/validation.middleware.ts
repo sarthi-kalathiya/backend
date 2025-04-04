@@ -271,6 +271,43 @@ export const validators = {
     }
     return true;
   },
+
+  // Validates that each item in an array passes a primitive validator (like uuid, email, etc)
+  arrayItems: 
+    (itemValidator: ValidatorFunction) =>
+    (value: any, fieldName: string): true | string => {
+      if (!Array.isArray(value)) return `${fieldName} must be an array`;
+      
+      for (let i = 0; i < value.length; i++) {
+        const result = itemValidator(value[i], `${fieldName}[${i}]`);
+        if (result !== true) {
+          return result;
+        }
+      }
+      
+      return true;
+    },
+
+  // Validates that each object in an array conforms to a schema
+  arrayObjects:
+    (schema: Record<string, ValidatorFunction>) =>
+    (value: any, fieldName: string): true | string => {
+      if (!Array.isArray(value)) return `${fieldName} must be an array`;
+      
+      for (let i = 0; i < value.length; i++) {
+        const item = value[i];
+        
+        // Check each field in the schema
+        for (const [key, validator] of Object.entries(schema)) {
+          const result = validator(item[key], `${fieldName}[${i}].${key}`);
+          if (result !== true) {
+            return result;
+          }
+        }
+      }
+      
+      return true;
+    },
 };
 
 // Generic validation error response function

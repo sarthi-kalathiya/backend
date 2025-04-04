@@ -46,7 +46,7 @@ export const refreshToken = async (
   next: NextFunction
 ) => {
   try {
-    const { refreshToken } = req.body as RefreshTokenDto;
+    const refreshToken : RefreshTokenDto = req.body;
     const result: TokenResponse = await authService.refreshAuthToken(refreshToken);
     return successResponse(res, result, "Token refreshed successfully");
   } catch (error) {

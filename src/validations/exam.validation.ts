@@ -48,17 +48,38 @@ export const createExamSchema = {
 // Exam update validation schema
 export const updateExamSchema = {
   name: validators.compose(
+    validators.required,
     validators.string,
     validators.minLength(3),
     validators.maxLength(100)
   ),
-  subjectId: validators.compose(validators.string, validators.uuid),
-  numQuestions: validators.compose(validators.number, validators.min(1)),
-  passingMarks: validators.compose(validators.number, validators.min(1)),
-  totalMarks: validators.compose(validators.number, validators.min(1)),
-  duration: validators.compose(validators.number, validators.min(5)),
-  startDate: validators.compose(validators.date),
-  endDate: validators.compose(validators.date),
+  subjectId: validators.compose(
+    validators.required,
+    validators.string,
+    validators.uuid
+  ),
+  numQuestions: validators.compose(
+    validators.required,
+    validators.number,
+    validators.min(1)
+  ),
+  passingMarks: validators.compose(
+    validators.required,
+    validators.number,
+    validators.min(1)
+  ),
+  totalMarks: validators.compose(
+    validators.required,
+    validators.number,
+    validators.min(1)
+  ),
+  duration: validators.compose(
+    validators.required,
+    validators.number,
+    validators.min(5)
+  ),
+  startDate: validators.compose(validators.required, validators.date),
+  endDate: validators.compose(validators.required, validators.date),
 };
 
 // Update exam status validation schema
@@ -66,33 +87,14 @@ export const updateExamStatusSchema = {
   isActive: validators.compose(validators.required, validators.boolean),
 };
 
-// Question creation validation schema
-export const questionSchema = {
-  questionText: validators.compose(
-    validators.required,
-    validators.string,
-    validators.minLength(3),
-    validators.maxLength(1000)
-  ),
-  hasImage: validators.compose(validators.boolean),
-  images: validators.compose(validators.array),
-  marks: validators.compose(
-    validators.required,
-    validators.number,
-    validators.min(0.5)
-  ),
-  negativeMarks: validators.compose(validators.number, validators.min(0)),
-  options: validators.compose(validators.required, validators.array),
-  correctOptionIndex: validators.compose(
-    validators.required,
-    validators.number,
-    validators.min(0)
-  ),
-};
-
 // Student assignment validation schema
 export const assignExamSchema = {
-  studentIds: validators.compose(validators.required, validators.array),
+  studentIds: validators.compose(
+    validators.required, 
+    validators.array,
+    validators.minLength(1),
+    validators.arrayItems(validators.uuid)
+  ),
 };
 
 // exam id parameter validation schema
