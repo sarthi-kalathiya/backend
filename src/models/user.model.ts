@@ -154,3 +154,16 @@ export interface UserWithProfile extends BaseUser {
 }
 export interface Student extends BaseStudent {}
 export interface Teacher extends BaseTeacher {}
+
+export interface ResetPasswordDto {
+  newPassword: string;
+}
+
+export interface PasswordResponseDto {
+  message: string;
+}
+
+export interface ChangePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+}

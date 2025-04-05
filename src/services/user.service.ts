@@ -1,17 +1,70 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, User as PrismaUser } from "@prisma/client";
 import prisma from "../utils/prismaClient";
 import { BadRequestError, NotFoundError } from "../utils/errors";
 import { UserRole } from "../constants/user";
 import * as authService from "./auth.service";
 import {
+  UserResponseDto,
+  UserWithProfileResponseDto,
+  TeacherResponseDto,
+  StudentResponseDto,
   TeacherProfileDto,
   StudentProfileDto,
   UserProfileUpdateDto,
   CreateUserDto,
+  UpdateUserDto,
+  UserQueryParams,
+  PaginatedResponse,
 } from "../models/user.model";
 
+// Helper function to map Prisma User to UserResponseDto
+const mapUserToResponseDto = (user: PrismaUser): UserResponseDto => {
+  return {
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role as UserRole,
+    contactNumber: user.contactNumber || undefined,
+    isActive: user.isActive,
+    profileCompleted: user.profileCompleted,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  };
+};
+
+// Helper function to map Prisma User with profile to UserWithProfileResponseDto
+const mapUserWithProfileToResponseDto = (user: any): UserWithProfileResponseDto => {
+  const baseUser = mapUserToResponseDto(user);
+  
+  return {
+    ...baseUser,
+    student: user.student ? {
+      id: user.student.id,
+      userId: user.student.userId,
+      rollNumber: user.student.rollNumber || undefined,
+      grade: user.student.grade || undefined,
+      parentContactNumber: user.student.parentContactNumber || undefined,
+      joiningDate: user.student.joiningDate,
+      completedExams: user.student.completedExams,
+      createdAt: user.student.createdAt,
+      updatedAt: user.student.updatedAt
+    } : null,
+    teacher: user.teacher ? {
+      id: user.teacher.id,
+      userId: user.teacher.userId,
+      qualification: user.teacher.qualification || undefined,
+      expertise: user.teacher.expertise || undefined,
+      experience: user.teacher.experience,
+      bio: user.teacher.bio || undefined,
+      createdAt: user.teacher.createdAt,
+      updatedAt: user.teacher.updatedAt
+    } : null
+  };
+};
+
 // Get all users
-export const getAllUsers = async (filters: any = {}) => {
+export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedResponse<UserResponseDto>> => {
   const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
 
   const whereCondition: any = {};
@@ -21,7 +74,7 @@ export const getAllUsers = async (filters: any = {}) => {
   }
 
   if (isActive !== undefined) {
-    whereCondition.isActive = isActive === "true";
+    whereCondition.isActive = typeof isActive === 'string' ? isActive === "true" : isActive;
   }
 
   if (searchTerm) {
@@ -33,8 +86,8 @@ export const getAllUsers = async (filters: any = {}) => {
   }
 
   // Convert page and pageSize to numbers and validate
-  const pageNum = parseInt(page as string, 10);
-  const pageSizeNum = parseInt(pageSize as string, 10);
+  const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
+  const pageSizeNum = typeof pageSize === 'string' ? parseInt(pageSize, 10) : pageSize;
 
   // Calculate pagination values
   const skip = (pageNum - 1) * pageSizeNum;
@@ -56,6 +109,7 @@ export const getAllUsers = async (filters: any = {}) => {
       role: true,
       contactNumber: true,
       isActive: true,
+      profileCompleted: true,
       createdAt: true,
       updatedAt: true,
     },
@@ -64,20 +118,34 @@ export const getAllUsers = async (filters: any = {}) => {
     take,
   });
 
-  // Return both users and pagination info
+  // Map users to DTOs
+  const mappedUsers = users.map((user) => ({
+    id: user.id,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    email: user.email,
+    role: user.role as UserRole,
+    contactNumber: user.contactNumber || undefined,
+    isActive: user.isActive,
+    profileCompleted: user.profileCompleted,
+    createdAt: user.createdAt,
+    updatedAt: user.updatedAt
+  }));
+
+  // Return paginated response
   return {
-    users,
+    users: mappedUsers,
     pagination: {
       total: totalCount,
       page: pageNum,
       pageSize: pageSizeNum,
-      totalPages: Math.ceil(totalCount / pageSizeNum),
-    },
+      totalPages: Math.ceil(totalCount / pageSizeNum)
+    }
   };
 };
 
 // Get user by ID
-export const getUserById = async (userId: string) => {
+export const getUserById = async (userId: string): Promise<UserWithProfileResponseDto> => {
   // First get the user with basic profile info
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -123,13 +191,12 @@ export const getUserById = async (userId: string) => {
   if (!user) {
     throw new NotFoundError("User not found");
   }
-  return {
-    ...user,
-  };
+  
+  return mapUserWithProfileToResponseDto(user);
 };
 
 // Create user
-export const createUser = async (userData: CreateUserDto) => {
+export const createUser = async (userData: CreateUserDto): Promise<UserResponseDto> => {
   const { firstName, lastName, email, password, role, contactNumber } =
     userData;
 
@@ -187,40 +254,32 @@ export const createUser = async (userData: CreateUserDto) => {
     }
   );
 
-  return {
-    id: result.id,
-    firstName: result.firstName,
-    lastName: result.lastName,
-    email: result.email,
-    role: result.role,
-    contactNumber: result.contactNumber,
-    isActive: result.isActive,
-    profileCompleted: result.profileCompleted,
-    createdAt: result.createdAt,
-    updatedAt: result.updatedAt,
-  };
+  return mapUserToResponseDto(result);
 };
 
 // Update user
-export const updateUser = async (userId: string, userData: any) => {
+export const updateUser = async (
+  userId: string, 
+  userData: UpdateUserDto
+): Promise<UserResponseDto> => {
   const { firstName, lastName, email, contactNumber } = userData;
 
   // Check if user exists
-  const user = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: { id: userId },
   });
 
-  if (!user) {
+  if (!existingUser) {
     throw new NotFoundError("User not found");
   }
 
-  // Check if email is unique if changing
-  if (email && email !== user.email) {
-    const existingUser = await prisma.user.findUnique({
+  // Check if email is being changed and if it's already in use
+  if (email && email !== existingUser.email) {
+    const emailExists = await prisma.user.findUnique({
       where: { email },
     });
 
-    if (existingUser) {
+    if (emailExists) {
       throw new BadRequestError("Email already in use");
     }
   }
@@ -234,26 +293,18 @@ export const updateUser = async (userId: string, userData: any) => {
       email,
       contactNumber,
     },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      role: true,
-      contactNumber: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-    },
   });
 
-  return updatedUser;
+  return mapUserToResponseDto(updatedUser);
 };
 
 // Update user status
-export const updateUserStatus = async (userId: string, isActive: boolean) => {
+export const updateUserStatus = async (
+  userId: string,
+  isActive: boolean
+): Promise<UserWithProfileResponseDto> => {
   // Check if user exists
-  const user = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: { id: userId },
     include: {
       student: true,
@@ -261,7 +312,7 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
     },
   });
 
-  if (!user) {
+  if (!existingUser) {
     throw new NotFoundError("User not found");
   }
 
@@ -269,22 +320,13 @@ export const updateUserStatus = async (userId: string, isActive: boolean) => {
   const updatedUser = await prisma.user.update({
     where: { id: userId },
     data: { isActive },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      role: true,
-      contactNumber: true,
-      isActive: true,
+    include: {
       student: true,
       teacher: true,
-      createdAt: true,
-      updatedAt: true,
     },
   });
 
-  return updatedUser;
+  return mapUserWithProfileToResponseDto(updatedUser);
 };
 
 // Reset user password
@@ -293,11 +335,11 @@ export const resetUserPassword = async (
   newPassword: string
 ) => {
   // Check if user exists
-  const user = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: { id: userId },
   });
 
-  if (!user) {
+  if (!existingUser) {
     throw new NotFoundError("User not found");
   }
 
@@ -320,19 +362,20 @@ export const changeUserPassword = async (
   newPassword: string
 ) => {
   // Check if user exists
-  const user = await prisma.user.findUnique({
+  const existingUser = await prisma.user.findUnique({
     where: { id: userId },
   });
 
-  if (!user) {
+  if (!existingUser) {
     throw new NotFoundError("User not found");
   }
 
   // Verify current password
   const isPasswordValid = await authService.comparePassword(
     currentPassword,
-    user.password
+    existingUser.password
   );
+
   if (!isPasswordValid) {
     throw new BadRequestError("Current password is incorrect");
   }
@@ -513,60 +556,10 @@ export const createStudentProfile = async (
   }
 };
 
-// Get user with profile details
-export const getUserWithProfile = async (userId: string) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      firstName: true,
-      lastName: true,
-      email: true,
-      role: true,
-      contactNumber: true,
-      isActive: true,
-      createdAt: true,
-      updatedAt: true,
-      student: {
-        select: {
-          id: true,
-          userId: true,
-          rollNumber: true,
-          grade: true,
-          parentContactNumber: true,
-          joiningDate: true,
-          completedExams: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-      teacher: {
-        select: {
-          id: true,
-          userId: true,
-          qualification: true,
-          expertise: true,
-          experience: true,
-          bio: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      },
-    },
-  });
-
-  if (!user) {
-    throw new NotFoundError("User not found");
-  }
-
-  return user;
-};
-
-// Update user profile
-export const updateUserProfile = async (
-  userId: string,
-  profileData: UserProfileUpdateDto
-) => {
+// Get user with profile
+export const getUserWithProfile = async (
+  userId: string
+): Promise<UserWithProfileResponseDto> => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -576,6 +569,27 @@ export const updateUserProfile = async (
   });
 
   if (!user) {
+    throw new NotFoundError("User not found");
+  }
+
+  return mapUserWithProfileToResponseDto(user);
+};
+
+// Update user profile
+export const updateUserProfile = async (
+  userId: string,
+  profileData: UserProfileUpdateDto
+): Promise<UserWithProfileResponseDto> => {
+  // Check if user exists
+  const existingUser = await prisma.user.findUnique({
+    where: { id: userId },
+    include: {
+      student: true,
+      teacher: true,
+    },
+  });
+
+  if (!existingUser) {
     throw new NotFoundError("User not found");
   }
 
