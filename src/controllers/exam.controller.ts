@@ -1,12 +1,24 @@
 import { Request, Response, NextFunction } from "express";
 import * as examService from "../services/exam.service";
 import { BadRequestError, UnauthorizedError } from "../utils/errors";
+import { ExamStatus } from "../constants/exam";
+import { validateFields } from "../middlewares/validation.middleware";
 import {
   successResponse,
   createdResponse,
   warningResponse,
 } from "../utils/response";
 import { CreateQuestionDto, UpdateQuestionDto } from "../models/exam.model";
+
+// Helper to add status text to exam responses
+const addStatusToExam = (exam: any) => {
+  if (!exam) return exam;
+  
+  return {
+    ...exam,
+    statusText: examService.getExamStatusText(exam)
+  };
+};
 
 // Teacher exam operations
 export const getTeacherExams = async (
@@ -53,7 +65,9 @@ export const getExamById = async (
     const teacherId = req.user!.teacher?.id;
 
     const exam = await examService.getExamById(req.params.examId, teacherId);
-    return successResponse(res, exam, "Exam retrieved successfully");
+    // Add status text to the exam response
+    const examWithStatus = addStatusToExam(exam);
+    return successResponse(res, examWithStatus, "Exam retrieved successfully");
   } catch (error) {
     next(error);
   }

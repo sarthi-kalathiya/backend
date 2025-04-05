@@ -1055,3 +1055,26 @@ export const addBulkQuestions = async (
     },
   };
 };
+
+// Helper function to get exam status text
+export const getExamStatusText = (exam: any): string => {
+  if (!exam) return 'Unknown';
+  
+  // If exam is inactive, always show "Draft" status
+  if (!exam.isActive) {
+    return 'Draft';
+  }
+  
+  // If exam is active, determine status based on dates
+  const now = new Date();
+  const startDate = new Date(exam.startDate);
+  const endDate = new Date(exam.endDate);
+
+  if (now < startDate) {
+    return 'Upcoming';
+  } else if (now >= startDate && now <= endDate) {
+    return 'Active';
+  } else {
+    return 'Finished';
+  }
+};
