@@ -15,19 +15,30 @@ export const getTeacherExams = async (
   next: NextFunction
 ) => {
   try {
-    const teacherId = req.user!.teacher?.id;
+    const teacherId = req.user!.teacher!.id;
+    
+    // Extract filter parameters from query
+    const { page, limit, searchTerm, status, subjectId } = req.query;
+    
+    // Use the new filtered method
+    const result = await examService.getFilteredTeacherExams(teacherId, {
+      page: page as string,
+      limit: limit as string,
+      searchTerm: searchTerm as string,
+      status: status as string,
+      subjectId: subjectId as string
+    });
 
-    // Get pagination parameters from query
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
-
-    // Validate pagination parameters
-    if (page < 1 || limit < 1) {
-      throw new BadRequestError("Invalid pagination parameters");
-    }
-
-    const result = await examService.getTeacherExams(teacherId!, page, limit);
-    return successResponse(res, result, "Exams retrieved successfully");
+    // Return successful response with pagination metadata
+    return successResponse(res, {
+      exams: result.exams,
+      pagination: {
+        total: result.total,
+        page: parseInt(page as string || '1', 10),
+        limit: parseInt(limit as string || '10', 10),
+        totalPages: Math.ceil(result.total / parseInt(limit as string || '10', 10))
+      }
+    }, 'Exams retrieved successfully');
   } catch (error) {
     next(error);
   }

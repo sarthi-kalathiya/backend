@@ -10,6 +10,7 @@ import {
   updateExamSchema,
   updateExamStatusSchema,
   examIdParamSchema,
+  examFilterSchema,
 } from "../validations/exam.validation";
 import {
   questionIdParamSchema,
@@ -27,6 +28,7 @@ router.get(
   "/exams",
   authenticateTeacher,
   requireProfileCompletion,
+  validateFields(examFilterSchema, "query"),
   examController.getTeacherExams
 );
 

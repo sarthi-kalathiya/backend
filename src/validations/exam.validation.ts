@@ -124,3 +124,27 @@ export const cheatEventSchema = {
     validators.oneOf(["TAB_SWITCH", "FULLSCREEN_EXIT"])
   ),
 };
+// Add validation schema for exam filtering query parameters
+export const examFilterSchema = {
+  page: validators.compose(
+    validators.number,
+    validators.min(1),
+  ),
+  limit: validators.compose(
+    validators.number,
+    validators.min(1),
+    validators.max(100),
+  ),
+  searchTerm: validators.compose(
+    validators.string,
+    validators.maxLength(100),
+  ),
+  status: validators.compose(
+    validators.string,
+    validators.oneOf(["active", "draft", "upcoming", "completed"]),
+  ),
+  subjectId: validators.compose(
+    validators.string,
+    validators.uuid,
+  ),
+};

@@ -13,49 +13,122 @@ import {
 import { PrismaClient } from "@prisma/client";
 
 // Teacher exam operations
-export const getTeacherExams = async (
+export const getFilteredTeacherExams = async (
   teacherId: string,
-  page: number = 1,
-  limit: number = 10
-) => {
-  const skip = (page - 1) * limit;
+  filters: {
+    page?: number | string;
+    limit?: number | string;
+    searchTerm?: string;
+    status?: string;
+    subjectId?: string;
+  }
+): Promise<{ exams: any[]; total: number }> => {
+  const { page = 1, limit = 10, searchTerm, status, subjectId } = filters;
+
+  // Convert page and limit to numbers
+  const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
+  const limitNum = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+  const skip = (pageNum - 1) * limitNum;
+
+  // Build base query - only exams owned by this teacher
+  const whereCondition: any = {
+    ownerId: teacherId,
+  };
+
+  // Add subject filter if provided
+  if (subjectId) {
+    whereCondition.subjectId = subjectId;
+  }
+
+  // Add status filter if provided
+  if (status) {
+    const now = new Date();
+    
+    switch (status) {
+      case 'active':
+        whereCondition.isActive = true;
+        whereCondition.startDate = { lte: now };
+        whereCondition.endDate = { gte: now };
+        break;
+      case 'draft':
+        whereCondition.isActive = false;
+        break;
+      case 'upcoming':
+        whereCondition.isActive = true;
+        whereCondition.startDate = { gt: now };
+        break;
+      case 'completed':
+        whereCondition.isActive = true;
+        whereCondition.endDate = { lt: now };
+        break;
+    }
+  }
+
+  // Add search filter if provided
+  if (searchTerm) {
+    whereCondition.OR = [
+      {
+        name: {
+          contains: searchTerm,
+          mode: 'insensitive',
+        },
+      },
+      {
+        subject: {
+          name: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+      },
+      {
+        subject: {
+          code: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+      },
+    ];
+  }
 
   // Get total count for pagination
-  const total = await prisma.exam.count({
-    where: {
-      ownerId: teacherId,
-    },
+  const totalExams = await prisma.exam.count({
+    where: whereCondition,
   });
-
-  // Get paginated exams
+console.log(whereCondition);
+  // Get paginated exams with related data
   const exams = await prisma.exam.findMany({
-    where: {
-      ownerId: teacherId,
-    },
+    where: whereCondition,
     include: {
       subject: true,
-      _count: {
+      questions: {
         select: {
-          questions: true,
-          studentExams: true,
+          id: true,
         },
       },
     },
     orderBy: {
-      createdAt: "desc",
+      createdAt: 'desc',
     },
     skip,
-    take: limit,
+    take: limitNum,
+  });
+console.log(exams);
+  // Calculate derived properties for each exam
+  const processedExams = exams.map((exam) => {
+    const currentQuestionCount = exam.questions.length;
+    
+    return {
+      ...exam,
+      currentQuestionCount,
+      questions: undefined, // Remove the questions array from the response
+    };
   });
 
   return {
-    exams,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
+    exams: processedExams,
+    total: totalExams,
   };
 };
 
