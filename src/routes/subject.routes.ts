@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as subjectController from "../controllers/subject.controller";
-import { authenticateAdmin } from "../middlewares/auth.middleware";
+import { authenticateAdmin, authenticate } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
   createSubjectSchema,
@@ -23,6 +23,9 @@ router.get(
   validateFields(subjectIdParamSchema, "params"),
   subjectController.getSubjectById
 );
+
+// Get current user's subjects
+router.get("/my/subjects", authenticate, subjectController.getCurrentUserSubjects);
 
 // Admin subject management routes
 router.post(

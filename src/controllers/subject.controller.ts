@@ -158,6 +158,28 @@ export const getUserSubjects = async (
   }
 };
 
+// Get current user's subjects
+export const getCurrentUserSubjects = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = req.user!.id;
+
+    const subjects: SubjectResponseDto[] = await subjectService.getUserSubjects(
+      userId
+    );
+    return successResponse(
+      res,
+      subjects,
+      "Your subjects retrieved successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 // Assign subjects to user
 export const assignSubjectsToUser = async (
   req: Request,

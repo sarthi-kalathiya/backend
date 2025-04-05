@@ -79,7 +79,8 @@ export const teacherProfileSchema = {
   experience: validators.compose(
     validators.required,
     validators.number,
-    validators.min(0)
+    validators.min(0),
+    validators.max(80)
   ),
   bio: validators.compose(
     validators.required,
