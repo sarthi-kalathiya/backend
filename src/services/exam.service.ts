@@ -370,10 +370,23 @@ export const updateExamStatus = async (
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
     where: { id: examId, ownerId: teacherId },
+    include: {
+      studentExams: true
+    }
   });
 
   if (!exam) {
     throw new NotFoundError("Exam not found");
+  }
+
+  // Check if any students have started or completed the exam
+  const hasStudentsStarted = exam.studentExams.some(
+    se => se.status === ExamStatus.IN_PROGRESS || se.status === ExamStatus.COMPLETED
+  );
+
+  // If deactivating (Draft) and students have started, prevent the change
+  if (!isActive && hasStudentsStarted) {
+    throw new BadRequestError("Cannot change exam to Draft after students have started taking it");
   }
 
   // If trying to activate the exam, validate it first

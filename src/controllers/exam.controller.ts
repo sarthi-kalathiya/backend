@@ -156,14 +156,36 @@ export const updateExamStatus = async (
       throw new BadRequestError("Missing isActive field");
     }
 
+    // Get the current exam to check its status
+    const currentExam = await examService.getExamById(req.params.examId, teacherId!);
+    const currentStatus = examService.getExamStatusText(currentExam);
+    
+    // Implement status change restrictions
+    // If trying to deactivate (change to Draft)
+    if (!isActive) {
+      // If exam is Active (not just Upcoming), prevent changing to Draft
+      if (currentStatus === 'Active') {
+        throw new BadRequestError("Cannot change exam from Active to Draft once students may have started the exam");
+      }
+      
+      // Finished exams can't be changed
+      if (currentStatus === 'Finished') {
+        throw new BadRequestError("Cannot change the status of a finished exam");
+      }
+    }
+    
     const exam = await examService.updateExamStatus(
       req.params.examId,
       teacherId!,
       isActive
     );
+    
+    // Add status text to the response
+    const examWithStatus = addStatusToExam(exam);
+    
     return successResponse(
       res,
-      exam,
+      examWithStatus,
       `Exam ${isActive ? "activated" : "deactivated"} successfully`
     );
   } catch (error) {
