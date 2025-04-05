@@ -1,9 +1,9 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { BadRequestError, NotFoundError } from "../utils/errors";
-import { 
-  Subject, 
-  SubjectResponseDto, 
-  PaginatedResponse
+import {
+  Subject,
+  SubjectResponseDto,
+  PaginatedResponse,
 } from "../models/subject.model";
 
 const prisma = new PrismaClient();
@@ -17,7 +17,7 @@ const mapSubjectToResponse = (subject: Subject): SubjectResponseDto => ({
   credits: subject.credits,
   isActive: subject.isActive,
   createdAt: subject.createdAt,
-  updatedAt: subject.updatedAt
+  updatedAt: subject.updatedAt,
 });
 
 export const subjectService = {
@@ -29,8 +29,9 @@ export const subjectService = {
     filterActive?: boolean
   ): Promise<PaginatedResponse<SubjectResponseDto>> {
     // Convert page and pageSize to numbers
-    const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
-    const pageSizeNum = typeof pageSize === 'string' ? parseInt(pageSize, 10) : pageSize;
+    const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
+    const pageSizeNum =
+      typeof pageSize === "string" ? parseInt(pageSize, 10) : pageSize;
 
     const whereCondition: Prisma.SubjectWhereInput = {};
 
@@ -44,7 +45,12 @@ export const subjectService = {
       whereCondition.OR = [
         { name: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
         { code: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
-        { description: { contains: searchTerm, mode: Prisma.QueryMode.insensitive } },
+        {
+          description: {
+            contains: searchTerm,
+            mode: Prisma.QueryMode.insensitive,
+          },
+        },
       ];
     }
 
@@ -232,7 +238,7 @@ export const subjectService = {
         },
       });
 
-      return studentSubjects.map(item => mapSubjectToResponse(item.subject));
+      return studentSubjects.map((item) => mapSubjectToResponse(item.subject));
     } else if (user.teacher) {
       const teacherSubjects = await prisma.teachersOnSubjects.findMany({
         where: { teacherId: user.teacher.id },
@@ -241,7 +247,7 @@ export const subjectService = {
         },
       });
 
-      return teacherSubjects.map(item => mapSubjectToResponse(item.subject));
+      return teacherSubjects.map((item) => mapSubjectToResponse(item.subject));
     }
 
     return [];
@@ -263,7 +269,6 @@ export const subjectService = {
       throw new NotFoundError("User not found");
     }
 
-    
     if (subjectIds.length === 0) {
       throw new BadRequestError("Please provide an array of subject IDs");
     }
@@ -386,7 +391,9 @@ export const subjectService = {
       });
 
       if (existingAssignment) {
-        throw new BadRequestError("Subject is already assigned to this student");
+        throw new BadRequestError(
+          "Subject is already assigned to this student"
+        );
       }
 
       await prisma.studentsOnSubjects.create({
@@ -403,7 +410,7 @@ export const subjectService = {
         },
       });
 
-      return studentSubjects.map(item => mapSubjectToResponse(item.subject));
+      return studentSubjects.map((item) => mapSubjectToResponse(item.subject));
     } else if (user.teacher) {
       const existingAssignment = await prisma.teachersOnSubjects.findUnique({
         where: {
@@ -415,7 +422,9 @@ export const subjectService = {
       });
 
       if (existingAssignment) {
-        throw new BadRequestError("Subject is already assigned to this teacher");
+        throw new BadRequestError(
+          "Subject is already assigned to this teacher"
+        );
       }
 
       await prisma.teachersOnSubjects.create({
@@ -432,7 +441,7 @@ export const subjectService = {
         },
       });
 
-      return teacherSubjects.map(item => mapSubjectToResponse(item.subject));
+      return teacherSubjects.map((item) => mapSubjectToResponse(item.subject));
     }
 
     throw new BadRequestError(
@@ -454,5 +463,5 @@ export const subjectService = {
     });
 
     return true;
-  }
+  },
 };

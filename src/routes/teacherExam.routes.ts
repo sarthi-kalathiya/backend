@@ -2,7 +2,10 @@ import { Router } from "express";
 import * as teacherExamController from "../controllers/teacherExam.controller";
 import { authenticateTeacher } from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
-import { assignExamSchema, examIdParamSchema } from "../validations/exam.validation";
+import {
+  assignExamSchema,
+  examIdParamSchema,
+} from "../validations/exam.validation";
 import { studentIdParamSchema } from "../validations/user.validation";
 
 const router = Router();
@@ -50,7 +53,7 @@ router.get(
 );
 
 // Get student result
-router.get( 
+router.get(
   "/exams/:examId/students/:studentId/result",
   authenticateTeacher,
   validateFields(examIdParamSchema, "params"),

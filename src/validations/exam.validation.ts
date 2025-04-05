@@ -90,7 +90,7 @@ export const updateExamStatusSchema = {
 // Student assignment validation schema
 export const assignExamSchema = {
   studentIds: validators.compose(
-    validators.required, 
+    validators.required,
     validators.array,
     validators.minLength(1),
     validators.arrayItems(validators.uuid)

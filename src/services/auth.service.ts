@@ -156,21 +156,21 @@ export const signin = async (
   const refreshToken = generateRefreshToken(user.id, user.role as UserRole);
 
   // Transform teacher/student data to match expected types
-  const teacherData = user.teacher 
+  const teacherData = user.teacher
     ? {
         ...user.teacher,
         qualification: user.teacher.qualification || undefined,
         expertise: user.teacher.expertise || undefined,
-        bio: user.teacher.bio || undefined
+        bio: user.teacher.bio || undefined,
       }
     : null;
-    
+
   const studentData = user.student
     ? {
         ...user.student,
         rollNumber: user.student.rollNumber || undefined,
         grade: user.student.grade || undefined,
-        parentContactNumber: user.student.parentContactNumber || undefined
+        parentContactNumber: user.student.parentContactNumber || undefined,
       }
     : null;
 

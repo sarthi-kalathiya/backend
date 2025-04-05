@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
-import { 
-  AssignExamResponse, 
+import {
+  AssignExamResponse,
   ToggleBanResponse,
   ExamResultsResponse,
   StudentResultResponse,
@@ -10,7 +10,7 @@ import {
   PrismaStudent,
   BannedStudentInfo,
   PrismaStudentExam,
-  PrismaResult
+  PrismaResult,
 } from "../models/teacherExam.model";
 
 const prisma = new PrismaClient();
@@ -21,8 +21,6 @@ export const assignExamToStudents = async (
   studentIds: string[],
   teacherId: string
 ): Promise<AssignExamResponse> => {
- 
-
   // Verify teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
@@ -42,19 +40,25 @@ export const assignExamToStudents = async (
   const existingStudents = await prisma.student.findMany({
     where: {
       id: {
-        in: studentIds
-      }
+        in: studentIds,
+      },
     },
     select: {
-      id: true
-    }
+      id: true,
+    },
   });
 
-  const existingStudentIds = existingStudents.map(student => student.id);
-  const nonExistentStudentIds = studentIds.filter(id => !existingStudentIds.includes(id));
+  const existingStudentIds = existingStudents.map((student) => student.id);
+  const nonExistentStudentIds = studentIds.filter(
+    (id) => !existingStudentIds.includes(id)
+  );
 
   if (nonExistentStudentIds.length > 0) {
-    throw new Error(`The following student IDs do not exist: ${nonExistentStudentIds.join(', ')}`);
+    throw new Error(
+      `The following student IDs do not exist: ${nonExistentStudentIds.join(
+        ", "
+      )}`
+    );
   }
 
   // Check if the exam is valid (question count and total marks match)
@@ -217,8 +221,8 @@ export const toggleStudentBan = async (
   // Verify the student exists
   const student = await prisma.student.findUnique({
     where: {
-      id: studentId
-    }
+      id: studentId,
+    },
   });
 
   if (!student) {
@@ -307,7 +311,7 @@ export const toggleStudentBan = async (
 
 // Get all results for an exam
 export const getExamResults = async (
-  examId: string, 
+  examId: string,
   teacherId: string
 ): Promise<ExamResultsResponse> => {
   // Verify teacher owns the exam
@@ -369,8 +373,8 @@ export const getStudentResult = async (
   // Verify the student exists
   const student = await prisma.student.findUnique({
     where: {
-      id: studentId
-    }
+      id: studentId,
+    },
   });
 
   if (!student) {
@@ -429,8 +433,8 @@ export const getStudentAnswerSheet = async (
   // Verify the student exists
   const student = await prisma.student.findUnique({
     where: {
-      id: studentId
-    }
+      id: studentId,
+    },
   });
 
   if (!student) {
@@ -488,8 +492,8 @@ export const getStudentCheatLogs = async (
   // Verify the student exists
   const student = await prisma.student.findUnique({
     where: {
-      id: studentId
-    }
+      id: studentId,
+    },
   });
 
   if (!student) {
@@ -516,7 +520,7 @@ export const getStudentCheatLogs = async (
 
 // Get banned students for an exam
 export const getBannedStudents = async (
-  examId: string, 
+  examId: string,
   teacherId: string
 ): Promise<PrismaStudent[]> => {
   // Verify teacher owns the exam

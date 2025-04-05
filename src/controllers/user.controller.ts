@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import * as userService from "../services/user.service";
-import {subjectService }from "../services/subject.service";
+import { subjectService } from "../services/subject.service";
 import { UnauthorizedError } from "../utils/errors";
 import {
   successResponse,

@@ -55,7 +55,9 @@ export const getSubjectById = async (
   next: NextFunction
 ) => {
   try {
-    const subject: SubjectResponseDto = await subjectService.getSubjectById(req.params.subjectId);
+    const subject: SubjectResponseDto = await subjectService.getSubjectById(
+      req.params.subjectId
+    );
     return successResponse(res, subject, "Subject retrieved successfully");
   } catch (error) {
     next(error);
@@ -122,10 +124,8 @@ export const updateSubjectStatus = async (
   try {
     const { isActive } = req.body;
 
-    const subject: SubjectResponseDto = await subjectService.updateSubjectStatus(
-      req.params.subjectId,
-      isActive
-    );
+    const subject: SubjectResponseDto =
+      await subjectService.updateSubjectStatus(req.params.subjectId, isActive);
     return successResponse(
       res,
       subject,
@@ -145,7 +145,9 @@ export const getUserSubjects = async (
   try {
     const { userId } = req.params;
 
-    const subjects: SubjectResponseDto[] = await subjectService.getUserSubjects(userId);
+    const subjects: SubjectResponseDto[] = await subjectService.getUserSubjects(
+      userId
+    );
     return successResponse(
       res,
       subjects,
@@ -166,10 +168,8 @@ export const assignSubjectsToUser = async (
     const { userId } = req.params;
     const { subjectIds } = req.body;
 
-    const subjects: SubjectResponseDto[] = await subjectService.assignSubjectsToUser(
-      userId,
-      subjectIds
-    );
+    const subjects: SubjectResponseDto[] =
+      await subjectService.assignSubjectsToUser(userId, subjectIds);
     return successResponse(
       res,
       subjects,
@@ -189,10 +189,8 @@ export const assignSubjectToUser = async (
   try {
     const { userId, subjectId } = req.params;
 
-    const subjects: SubjectResponseDto[] = await subjectService.assignSubjectToUser(
-      userId,
-      subjectId
-    );
+    const subjects: SubjectResponseDto[] =
+      await subjectService.assignSubjectToUser(userId, subjectId);
     return successResponse(
       res,
       subjects,

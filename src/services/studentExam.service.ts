@@ -2,11 +2,11 @@ import prisma from "../utils/prismaClient";
 import { logger } from "../utils/logger";
 import { CheatingEventType } from "../constants/exam";
 import { Question } from "../models/exam.model";
-import { 
-  BadRequestError, 
-  NotFoundError, 
+import {
+  BadRequestError,
+  NotFoundError,
   UnauthorizedError,
-  ForbiddenError
+  ForbiddenError,
 } from "../utils/errors";
 
 // Get all exams for student (with filters for assigned/completed)
@@ -38,7 +38,9 @@ export const getStudentExams = async (studentId: string, status?: string) => {
     },
   });
 
-  logger.info(`Retrieved ${studentExams.length} exams for student ${studentId}`);
+  logger.info(
+    `Retrieved ${studentExams.length} exams for student ${studentId}`
+  );
   return studentExams;
 };
 
@@ -73,7 +75,9 @@ export const getExamDetails = async (examId: string, studentId: string) => {
     throw new NotFoundError("Exam not found or not assigned to student");
   }
 
-  logger.info(`Retrieved exam details for student ${studentId}, exam ${examId}`);
+  logger.info(
+    `Retrieved exam details for student ${studentId}, exam ${examId}`
+  );
   return studentExam;
 };
 
@@ -116,7 +120,9 @@ export const startExam = async (examId: string, studentId: string) => {
 
   // Check if exam has already been started or completed
   if (studentExam.status !== "NOT_STARTED") {
-    throw new BadRequestError(`Exam already started or completed: ${studentExam.status}`);
+    throw new BadRequestError(
+      `Exam already started or completed: ${studentExam.status}`
+    );
   }
 
   // Check if exam is active
@@ -127,12 +133,16 @@ export const startExam = async (examId: string, studentId: string) => {
   // Check if exam has started (based on startDate)
   const now = new Date();
   if (now < studentExam.exam.startDate) {
-    throw new BadRequestError(`Exam has not started yet. Start date: ${studentExam.exam.startDate}`);
+    throw new BadRequestError(
+      `Exam has not started yet. Start date: ${studentExam.exam.startDate}`
+    );
   }
 
   // Check if exam has ended (based on endDate)
   if (now > studentExam.exam.endDate) {
-    throw new BadRequestError(`Exam has ended. End date: ${studentExam.exam.endDate}`);
+    throw new BadRequestError(
+      `Exam has ended. End date: ${studentExam.exam.endDate}`
+    );
   }
 
   // Calculate exam end time based on duration
@@ -151,7 +161,9 @@ export const startExam = async (examId: string, studentId: string) => {
   });
 
   // Log the start of exam with anti-cheating monitoring
-  logger.info(`Student ${studentId} started exam ${examId} at ${now.toISOString()}`);
+  logger.info(
+    `Student ${studentId} started exam ${examId} at ${now.toISOString()}`
+  );
 
   // Return exam details with anti-cheating configuration
   return {
@@ -179,10 +191,16 @@ export const startExam = async (examId: string, studentId: string) => {
 };
 
 // Submit an exam
-export const submitExam = async (examId: string, studentId: string, responses: Array<{ questionId: string; optionId: string }>) => {
+export const submitExam = async (
+  examId: string,
+  studentId: string,
+  responses: Array<{ questionId: string; optionId: string }>
+) => {
   // Validate responses array
   if (!responses || !Array.isArray(responses) || responses.length === 0) {
-    throw new BadRequestError("Responses must be a non-empty array of question answers");
+    throw new BadRequestError(
+      "Responses must be a non-empty array of question answers"
+    );
   }
 
   // Validate each response has required fields
@@ -191,7 +209,9 @@ export const submitExam = async (examId: string, studentId: string, responses: A
   );
 
   if (invalidResponses.length > 0) {
-    throw new BadRequestError("Each response must have questionId and optionId fields");
+    throw new BadRequestError(
+      "Each response must have questionId and optionId fields"
+    );
   }
 
   const studentExam = await prisma.studentExam.findFirst({
@@ -283,8 +303,7 @@ export const submitExam = async (examId: string, studentId: string, responses: A
       studentExamId: studentExam.id,
       marks: obtainedMarks,
       timeTaken,
-      status:
-        obtainedMarks >= studentExam.exam.passingMarks ? "PASS" : "FAIL",
+      status: obtainedMarks >= studentExam.exam.passingMarks ? "PASS" : "FAIL",
     },
   });
 
@@ -312,7 +331,7 @@ export const submitExam = async (examId: string, studentId: string, responses: A
   logger.info(
     `Student ${studentId} (${studentName}) submitted exam ${examId} with marks ${obtainedMarks}/${studentExam.exam.totalMarks}`
   );
-  
+
   return {
     exam: updatedExam,
     result: {
@@ -372,8 +391,8 @@ export const getExamQuestions = async (examId: string, studentId: string) => {
 
 // Save responses during exam
 export const saveResponses = async (
-  examId: string, 
-  studentId: string, 
+  examId: string,
+  studentId: string,
   responses: Array<{ questionId: string; optionId: string }>
 ) => {
   // Validate responses array
@@ -389,7 +408,9 @@ export const saveResponses = async (
     );
 
     if (invalidResponses.length > 0) {
-      throw new BadRequestError("Each response must have questionId and optionId fields");
+      throw new BadRequestError(
+        "Each response must have questionId and optionId fields"
+      );
     }
   }
 
@@ -575,10 +596,20 @@ export const getAnswerSheet = async (examId: string, studentId: string) => {
 };
 
 // Log cheating event
-export const logCheatEvent = async (examId: string, studentId: string, eventType: CheatingEventType) => {
+export const logCheatEvent = async (
+  examId: string,
+  studentId: string,
+  eventType: CheatingEventType
+) => {
   // Validate event type
-  if (!Object.values(CheatingEventType).includes(eventType as CheatingEventType)) {
-    throw new BadRequestError(`Invalid event type. Valid types: ${Object.values(CheatingEventType).join(', ')}`);
+  if (
+    !Object.values(CheatingEventType).includes(eventType as CheatingEventType)
+  ) {
+    throw new BadRequestError(
+      `Invalid event type. Valid types: ${Object.values(CheatingEventType).join(
+        ", "
+      )}`
+    );
   }
 
   // Get student exam with cheat logs
@@ -715,10 +746,7 @@ export const getUpcomingExams = async (studentId: string) => {
   const upcoming = [];
 
   for (const studentExam of upcomingExams) {
-    if (
-      now >= studentExam.exam.startDate &&
-      now <= studentExam.exam.endDate
-    ) {
+    if (now >= studentExam.exam.startDate && now <= studentExam.exam.endDate) {
       availableNow.push(studentExam);
     } else {
       upcoming.push(studentExam);
@@ -898,4 +926,4 @@ export const getExamReminders = async (studentId: string) => {
     reminders,
     todayDate: now.toISOString().split("T")[0],
   };
-}; 
+};

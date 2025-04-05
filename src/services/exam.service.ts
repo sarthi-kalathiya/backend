@@ -170,7 +170,7 @@ export const updateExam = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId  , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
     include: {
       studentExams: true,
       questions: true,
@@ -182,11 +182,7 @@ export const updateExam = async (
   }
 
   // Check if exam has already been taken by any student
-  if (
-    exam.studentExams.some(
-      (se) => se.status === ExamStatus.COMPLETED
-    )
-  ) {
+  if (exam.studentExams.some((se) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError("Cannot update exam that has already been taken");
   }
 
@@ -299,7 +295,7 @@ export const updateExamStatus = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
   });
 
   if (!exam) {
@@ -338,7 +334,7 @@ export const updateExamStatus = async (
 export const getExamQuestions = async (examId: string, teacherId: string) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
   });
 
   if (!exam) {
@@ -396,7 +392,7 @@ export const addQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
     include: {
       studentExams: true,
     },
@@ -407,11 +403,7 @@ export const addQuestion = async (
   }
 
   // Check if exam has already been taken by any student
-  if (
-    exam.studentExams.some(
-      (se) => se.status === ExamStatus.COMPLETED
-    )
-  ) {
+  if (exam.studentExams.some((se) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError("Cannot modify exam that has already been taken");
   }
 
@@ -561,7 +553,7 @@ export const updateQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
     include: {
       studentExams: true,
     },
@@ -572,11 +564,7 @@ export const updateQuestion = async (
   }
 
   // Check if exam has already been taken by any student
-  if (
-    exam.studentExams.some(
-      (se) => se.status === ExamStatus.COMPLETED
-    )
-  ) {
+  if (exam.studentExams.some((se) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError("Cannot modify exam that has already been taken");
   }
 
@@ -727,7 +715,7 @@ export const deactivateQuestion = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
   });
 
   if (!exam) {
@@ -811,7 +799,7 @@ export const addBulkQuestions = async (
 ) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId , ownerId: teacherId },
+    where: { id: examId, ownerId: teacherId },
     include: {
       questions: true,
       studentExams: true,
@@ -823,11 +811,7 @@ export const addBulkQuestions = async (
   }
 
   // Check if exam has already been taken by any student
-  if (
-    exam.studentExams.some(
-      (se) => se.status === ExamStatus.COMPLETED
-    )
-  ) {
+  if (exam.studentExams.some((se) => se.status === ExamStatus.COMPLETED)) {
     throw new BadRequestError("Cannot modify exam that has already been taken");
   }
 
@@ -906,70 +890,62 @@ export const addBulkQuestions = async (
   });
 
   // Create all questions with options in a transaction
-  const createdQuestions = await prisma.$transaction(
-    async (tx) => {
-      const createdQuestionsArray = [];
+  const createdQuestions = await prisma.$transaction(async (tx) => {
+    const createdQuestionsArray = [];
 
-      for (const questionData of questionsData) {
-        const {
-          questionText,
-          hasImage,
-          images,
-          marks,
-          negativeMarks,
-          options,
-        } = questionData;
+    for (const questionData of questionsData) {
+      const { questionText, hasImage, images, marks, negativeMarks, options } =
+        questionData;
 
-        // Create the question
-        const question = await tx.question.create({
-          data: {
-            examId,
-            questionText,
-            hasImage: !!hasImage,
-            images: hasImage ? images : [],
-            marks: Number(marks) || 1,
-            negativeMarks: Number(negativeMarks) || 0,
-            correctOptionId: "temp", // Temporary until we create options
-          },
-        });
-
-        // Create options
-        const createdOptions = await Promise.all(
-          options.map((opt) =>
-            tx.option.create({
-              data: {
-                questionId: question.id,
-                optionText: opt.text,
-              },
-            })
-          )
-        );
-
-        // Find the correct option and update the question
-        const correctOptionIndex = options.findIndex((opt) => opt.isCorrect);
-        const correctOption = createdOptions[correctOptionIndex];
-
-        const updatedQuestion = await tx.question.update({
-          where: { id: question.id },
-          data: { correctOptionId: correctOption.id },
-          include: { options: true },
-        });
-
-        createdQuestionsArray.push(updatedQuestion);
-      }
-
-      // Update the exam aggregates in a single operation
-      await tx.exam.update({
-        where: { id: examId },
+      // Create the question
+      const question = await tx.question.create({
         data: {
-          currentQuestionCount: { increment: questionsData.length },
-          currentTotalMarks: { increment: totalNewMarks },
+          examId,
+          questionText,
+          hasImage: !!hasImage,
+          images: hasImage ? images : [],
+          marks: Number(marks) || 1,
+          negativeMarks: Number(negativeMarks) || 0,
+          correctOptionId: "temp", // Temporary until we create options
         },
       });
 
-      return createdQuestionsArray;
+      // Create options
+      const createdOptions = await Promise.all(
+        options.map((opt) =>
+          tx.option.create({
+            data: {
+              questionId: question.id,
+              optionText: opt.text,
+            },
+          })
+        )
+      );
+
+      // Find the correct option and update the question
+      const correctOptionIndex = options.findIndex((opt) => opt.isCorrect);
+      const correctOption = createdOptions[correctOptionIndex];
+
+      const updatedQuestion = await tx.question.update({
+        where: { id: question.id },
+        data: { correctOptionId: correctOption.id },
+        include: { options: true },
+      });
+
+      createdQuestionsArray.push(updatedQuestion);
     }
-  );
+
+    // Update the exam aggregates in a single operation
+    await tx.exam.update({
+      where: { id: examId },
+      data: {
+        currentQuestionCount: { increment: questionsData.length },
+        currentTotalMarks: { increment: totalNewMarks },
+      },
+    });
+
+    return createdQuestionsArray;
+  });
 
   // Get the updated exam with the new aggregate values
   const updatedExam = await prisma.exam.findUnique({

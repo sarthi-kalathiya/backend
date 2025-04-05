@@ -1,6 +1,9 @@
 import { Router } from "express";
 import * as examController from "../controllers/exam.controller";
-import { authenticateTeacher, requireProfileCompletion } from "../middlewares/auth.middleware";
+import {
+  authenticateTeacher,
+  requireProfileCompletion,
+} from "../middlewares/auth.middleware";
 import { validateFields } from "../middlewares/validation.middleware";
 import {
   createExamSchema,
@@ -8,14 +11,24 @@ import {
   updateExamStatusSchema,
   examIdParamSchema,
 } from "../validations/exam.validation";
-import { questionIdParamSchema, updateQuestionSchema, questionSchema, bulkQuestionsSchema } from "../validations/question.validation";
+import {
+  questionIdParamSchema,
+  updateQuestionSchema,
+  questionSchema,
+  bulkQuestionsSchema,
+} from "../validations/question.validation";
 
 const router = Router();
 
 console.log("Exam routes file loaded");
 
 // get teacher exams
-router.get("/exams", authenticateTeacher, requireProfileCompletion, examController.getTeacherExams);
+router.get(
+  "/exams",
+  authenticateTeacher,
+  requireProfileCompletion,
+  examController.getTeacherExams
+);
 
 // create exam
 router.post(
@@ -27,7 +40,12 @@ router.post(
 );
 
 // get exam by id
-router.get("/exams/:examId", authenticateTeacher, requireProfileCompletion, examController.getExamById);
+router.get(
+  "/exams/:examId",
+  authenticateTeacher,
+  requireProfileCompletion,
+  examController.getExamById
+);
 
 // update exam
 router.put(

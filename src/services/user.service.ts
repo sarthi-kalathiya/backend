@@ -29,42 +29,50 @@ const mapUserToResponseDto = (user: PrismaUser): UserResponseDto => {
     isActive: user.isActive,
     profileCompleted: user.profileCompleted,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
   };
 };
 
 // Helper function to map Prisma User with profile to UserWithProfileResponseDto
-const mapUserWithProfileToResponseDto = (user: any): UserWithProfileResponseDto => {
+const mapUserWithProfileToResponseDto = (
+  user: any
+): UserWithProfileResponseDto => {
   const baseUser = mapUserToResponseDto(user);
-  
+
   return {
     ...baseUser,
-    student: user.student ? {
-      id: user.student.id,
-      userId: user.student.userId,
-      rollNumber: user.student.rollNumber || undefined,
-      grade: user.student.grade || undefined,
-      parentContactNumber: user.student.parentContactNumber || undefined,
-      joiningDate: user.student.joiningDate,
-      completedExams: user.student.completedExams,
-      createdAt: user.student.createdAt,
-      updatedAt: user.student.updatedAt
-    } : null,
-    teacher: user.teacher ? {
-      id: user.teacher.id,
-      userId: user.teacher.userId,
-      qualification: user.teacher.qualification || undefined,
-      expertise: user.teacher.expertise || undefined,
-      experience: user.teacher.experience,
-      bio: user.teacher.bio || undefined,
-      createdAt: user.teacher.createdAt,
-      updatedAt: user.teacher.updatedAt
-    } : null
+    student: user.student
+      ? {
+          id: user.student.id,
+          userId: user.student.userId,
+          rollNumber: user.student.rollNumber || undefined,
+          grade: user.student.grade || undefined,
+          parentContactNumber: user.student.parentContactNumber || undefined,
+          joiningDate: user.student.joiningDate,
+          completedExams: user.student.completedExams,
+          createdAt: user.student.createdAt,
+          updatedAt: user.student.updatedAt,
+        }
+      : null,
+    teacher: user.teacher
+      ? {
+          id: user.teacher.id,
+          userId: user.teacher.userId,
+          qualification: user.teacher.qualification || undefined,
+          expertise: user.teacher.expertise || undefined,
+          experience: user.teacher.experience,
+          bio: user.teacher.bio || undefined,
+          createdAt: user.teacher.createdAt,
+          updatedAt: user.teacher.updatedAt,
+        }
+      : null,
   };
 };
 
 // Get all users
-export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedResponse<UserResponseDto>> => {
+export const getAllUsers = async (
+  filters: UserQueryParams
+): Promise<PaginatedResponse<UserResponseDto>> => {
   const { role, isActive, searchTerm, page = 1, pageSize = 10 } = filters;
 
   const whereCondition: any = {};
@@ -74,7 +82,8 @@ export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedRe
   }
 
   if (isActive !== undefined) {
-    whereCondition.isActive = typeof isActive === 'string' ? isActive === "true" : isActive;
+    whereCondition.isActive =
+      typeof isActive === "string" ? isActive === "true" : isActive;
   }
 
   if (searchTerm) {
@@ -86,8 +95,9 @@ export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedRe
   }
 
   // Convert page and pageSize to numbers and validate
-  const pageNum = typeof page === 'string' ? parseInt(page, 10) : page;
-  const pageSizeNum = typeof pageSize === 'string' ? parseInt(pageSize, 10) : pageSize;
+  const pageNum = typeof page === "string" ? parseInt(page, 10) : page;
+  const pageSizeNum =
+    typeof pageSize === "string" ? parseInt(pageSize, 10) : pageSize;
 
   // Calculate pagination values
   const skip = (pageNum - 1) * pageSizeNum;
@@ -129,7 +139,7 @@ export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedRe
     isActive: user.isActive,
     profileCompleted: user.profileCompleted,
     createdAt: user.createdAt,
-    updatedAt: user.updatedAt
+    updatedAt: user.updatedAt,
   }));
 
   // Return paginated response
@@ -139,13 +149,15 @@ export const getAllUsers = async (filters: UserQueryParams): Promise<PaginatedRe
       total: totalCount,
       page: pageNum,
       pageSize: pageSizeNum,
-      totalPages: Math.ceil(totalCount / pageSizeNum)
-    }
+      totalPages: Math.ceil(totalCount / pageSizeNum),
+    },
   };
 };
 
 // Get user by ID
-export const getUserById = async (userId: string): Promise<UserWithProfileResponseDto> => {
+export const getUserById = async (
+  userId: string
+): Promise<UserWithProfileResponseDto> => {
   // First get the user with basic profile info
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -191,12 +203,14 @@ export const getUserById = async (userId: string): Promise<UserWithProfileRespon
   if (!user) {
     throw new NotFoundError("User not found");
   }
-  
+
   return mapUserWithProfileToResponseDto(user);
 };
 
 // Create user
-export const createUser = async (userData: CreateUserDto): Promise<UserResponseDto> => {
+export const createUser = async (
+  userData: CreateUserDto
+): Promise<UserResponseDto> => {
   const { firstName, lastName, email, password, role, contactNumber } =
     userData;
 
@@ -213,53 +227,51 @@ export const createUser = async (userData: CreateUserDto): Promise<UserResponseD
   const hashedPassword = await authService.hashPassword(password);
 
   // Create user transaction
-  const result = await prisma.$transaction(
-    async (tx) => {
-      // Create user with profileCompleted field
-      const user = await tx.user.create({
+  const result = await prisma.$transaction(async (tx) => {
+    // Create user with profileCompleted field
+    const user = await tx.user.create({
+      data: {
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role,
+        contactNumber: contactNumber || "",
+        profileCompleted: role === UserRole.ADMIN, // Only admin profiles are complete by default
+      },
+    });
+
+    // If user is a teacher or student, create a temporary profile
+    if (role === UserRole.TEACHER) {
+      await tx.teacher.create({
         data: {
-          firstName,
-          lastName,
-          email,
-          password: hashedPassword,
-          role,
-          contactNumber: contactNumber || "",
-          profileCompleted: role === UserRole.ADMIN, // Only admin profiles are complete by default
+          userId: user.id,
+          experience: 0,
+          qualification: "", // Empty string for temporary profile
+          expertise: "", // Empty string for temporary profile
+          bio: "", // Empty string for temporary profile
         },
       });
-
-      // If user is a teacher or student, create a temporary profile
-      if (role === UserRole.TEACHER) {
-        await tx.teacher.create({
-          data: {
-            userId: user.id,
-            experience: 0,
-            qualification: "", // Empty string for temporary profile
-            expertise: "", // Empty string for temporary profile
-            bio: "", // Empty string for temporary profile
-          },
-        });
-      } else if (role === UserRole.STUDENT) {
-        await tx.student.create({
-          data: {
-            userId: user.id,
-            rollNumber: "", // Empty string for temporary profile
-            grade: "", // Empty string for temporary profile
-            parentContactNumber: "", // Empty string for temporary profile
-          },
-        });
-      }
-
-      return user;
+    } else if (role === UserRole.STUDENT) {
+      await tx.student.create({
+        data: {
+          userId: user.id,
+          rollNumber: "", // Empty string for temporary profile
+          grade: "", // Empty string for temporary profile
+          parentContactNumber: "", // Empty string for temporary profile
+        },
+      });
     }
-  );
+
+    return user;
+  });
 
   return mapUserToResponseDto(result);
 };
 
 // Update user
 export const updateUser = async (
-  userId: string, 
+  userId: string,
   userData: UpdateUserDto
 ): Promise<UserResponseDto> => {
   const { firstName, lastName, email, contactNumber } = userData;
@@ -620,24 +632,24 @@ export const updateUserProfile = async (
       },
     });
   }
-    // If student, update student profile
-    if (
-      existingUser.role === UserRole.STUDENT &&
-      profileData.studentProfile &&
-      existingUser.student
-    ) {
-      await prisma.student.update({
-        where: { userId },
-        data: {
-          grade: profileData.studentProfile.grade,
-          rollNumber: profileData.studentProfile.rollNumber,
-          parentContactNumber: profileData.studentProfile.parentContactNumber,
-        },
-      });
-    }
+  // If student, update student profile
+  if (
+    existingUser.role === UserRole.STUDENT &&
+    profileData.studentProfile &&
+    existingUser.student
+  ) {
+    await prisma.student.update({
+      where: { userId },
+      data: {
+        grade: profileData.studentProfile.grade,
+        rollNumber: profileData.studentProfile.rollNumber,
+        parentContactNumber: profileData.studentProfile.parentContactNumber,
+      },
+    });
+  }
 
-    // Get updated user with profile
-    return getUserWithProfile(userId);
+  // Get updated user with profile
+  return getUserWithProfile(userId);
 };
 
 // Delete a user

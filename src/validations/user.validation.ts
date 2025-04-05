@@ -130,10 +130,7 @@ export const userProfileUpdateSchema = {
 
 // Query parameter validation schemas
 export const userQuerySchema = {
-  page: validators.compose(
-    validators.number,
-    validators.min(1)
-  ),
+  page: validators.compose(validators.number, validators.min(1)),
   limit: validators.compose(
     validators.number,
     validators.min(1),
@@ -151,12 +148,18 @@ export const userQuerySchema = {
   isActive: validators.boolean,
   sortBy: validators.compose(
     validators.string,
-    validators.oneOf(['firstName', 'lastName', 'email', 'createdAt', 'updatedAt'])
+    validators.oneOf([
+      "firstName",
+      "lastName",
+      "email",
+      "createdAt",
+      "updatedAt",
+    ])
   ),
   sortOrder: validators.compose(
     validators.string,
-    validators.oneOf(['asc', 'desc'])
-  )
+    validators.oneOf(["asc", "desc"])
+  ),
 };
 
 // Route parameter validation schemas
@@ -165,7 +168,7 @@ export const userIdParamSchema = {
     validators.required,
     validators.string,
     validators.uuid
-  )
+  ),
 };
 
 // Student ID parameter validation schema
@@ -174,7 +177,7 @@ export const studentIdParamSchema = {
     validators.required,
     validators.string,
     validators.uuid
-  )
+  ),
 };
 
 // ----

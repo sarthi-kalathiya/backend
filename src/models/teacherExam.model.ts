@@ -1,16 +1,13 @@
-import { 
-  Result, 
-  AnswerSheet, 
-  Response, 
-  Question, 
-  Option, 
+import {
+  Result,
+  AnswerSheet,
+  Response,
+  Question,
+  Option,
   Exam,
-  AntiCheatingLog as ExamAntiCheatingLog
+  AntiCheatingLog as ExamAntiCheatingLog,
 } from "./exam.model";
-import { 
-  User, 
-  Student
-} from "./user.model";
+import { User, Student } from "./user.model";
 
 // Types for controller request params
 export interface ExamIdParam {
@@ -53,7 +50,7 @@ export interface PrismaStudent {
 // For banned student info display
 export interface BannedStudentInfo {
   id: string;
-  name?: string;  // For display purposes
+  name?: string; // For display purposes
   firstName?: string;
   lastName?: string;
   email: string;
@@ -135,4 +132,4 @@ export interface ExamResultsResponse {
 
 export interface StudentResultResponse extends PrismaResult {
   totalMarks: number;
-} 
+}

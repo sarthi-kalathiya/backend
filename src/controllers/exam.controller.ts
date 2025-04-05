@@ -16,7 +16,7 @@ export const getTeacherExams = async (
 ) => {
   try {
     const teacherId = req.user!.teacher?.id;
-    
+
     // Get pagination parameters from query
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 10;
@@ -39,9 +39,7 @@ export const getExamById = async (
   next: NextFunction
 ) => {
   try {
-
     const teacherId = req.user!.teacher?.id;
-  
 
     const exam = await examService.getExamById(req.params.examId, teacherId);
     return successResponse(res, exam, "Exam retrieved successfully");
@@ -86,15 +84,12 @@ export const createExam = async (
   }
 };
 
-
 export const updateExam = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-
-
     const teacherId = req.user!.teacher?.id;
 
     const {
@@ -106,7 +101,6 @@ export const updateExam = async (
       startDate,
       endDate,
     } = req.body;
-
 
     const exam = await examService.updateExam(req.params.examId, teacherId!, {
       name,
@@ -124,16 +118,13 @@ export const updateExam = async (
   }
 };
 
-
 export const updateExamStatus = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-
     const teacherId = req.user!.teacher?.id;
-
 
     const { isActive } = req.body;
     if (isActive === undefined) {
@@ -162,7 +153,6 @@ export const getExamQuestions = async (
   next: NextFunction
 ) => {
   try {
-
     const teacherId = req.user!.teacher?.id;
 
     const questions = await examService.getExamQuestions(
@@ -181,15 +171,13 @@ export const addQuestion = async (
   next: NextFunction
 ) => {
   try {
-   
-
     const teacherId = req.user!.teacher?.id;
-   
+
     const { questionText, hasImage, images, marks, negativeMarks, options } =
       req.body;
 
     // Validate options array
-    if ( options.length < 2) {
+    if (options.length < 2) {
       throw new BadRequestError("Please provide at least 2 options");
     }
 
@@ -261,14 +249,10 @@ export const updateQuestion = async (
   next: NextFunction
 ) => {
   try {
- 
     const teacherId = req.user!.teacher?.id;
-   
 
     const { questionText, hasImage, images, marks, negativeMarks, options } =
       req.body;
-
-   
 
     // Ensure one option is marked as correct
     const hasCorrectOption = options.some(
@@ -345,9 +329,8 @@ export const deactivateQuestion = async (
   next: NextFunction
 ) => {
   try {
-   
     const teacherId = req.user!.teacher?.id;
-  
+
     await examService.deactivateQuestion(
       req.params.examId,
       req.params.questionId,
@@ -366,8 +349,6 @@ export const validateExam = async (
   next: NextFunction
 ) => {
   try {
-
-
     const teacherId = req.user!.teacher?.id;
 
     const { examId } = req.params;
@@ -424,10 +405,7 @@ export const addBulkQuestions = async (
   next: NextFunction
 ) => {
   try {
-   
-
     const teacherId = req.user!.teacher?.id;
-  
 
     const { questions } = req.body;
 

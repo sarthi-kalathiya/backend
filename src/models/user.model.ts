@@ -131,8 +131,8 @@ export interface UserQueryParams {
   searchTerm?: string;
   page?: number;
   pageSize?: number;
-  sortBy?: 'firstName' | 'lastName' | 'email' | 'createdAt' | 'updatedAt';
-  sortOrder?: 'asc' | 'desc';
+  sortBy?: "firstName" | "lastName" | "email" | "createdAt" | "updatedAt";
+  sortOrder?: "asc" | "desc";
 }
 
 // Pagination response interface

@@ -18,7 +18,10 @@ import {
   userQuerySchema,
   userIdParamSchema,
 } from "../validations/user.validation";
-import { changePasswordSchema , resetPasswordSchema } from "../validations/auth.validation";
+import {
+  changePasswordSchema,
+  resetPasswordSchema,
+} from "../validations/auth.validation";
 
 const router = Router();
 
@@ -115,7 +118,7 @@ router.patch(
   userController.resetPassword
 );
 
-// Delete user - require admin authentication 
+// Delete user - require admin authentication
 router.delete(
   "/admin/users/:userId",
   authenticateAdmin,

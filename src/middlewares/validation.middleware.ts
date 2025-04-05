@@ -273,18 +273,18 @@ export const validators = {
   },
 
   // Validates that each item in an array passes a primitive validator (like uuid, email, etc)
-  arrayItems: 
+  arrayItems:
     (itemValidator: ValidatorFunction) =>
     (value: any, fieldName: string): true | string => {
       if (!Array.isArray(value)) return `${fieldName} must be an array`;
-      
+
       for (let i = 0; i < value.length; i++) {
         const result = itemValidator(value[i], `${fieldName}[${i}]`);
         if (result !== true) {
           return result;
         }
       }
-      
+
       return true;
     },
 
@@ -293,10 +293,10 @@ export const validators = {
     (schema: Record<string, ValidatorFunction>) =>
     (value: any, fieldName: string): true | string => {
       if (!Array.isArray(value)) return `${fieldName} must be an array`;
-      
+
       for (let i = 0; i < value.length; i++) {
         const item = value[i];
-        
+
         // Check each field in the schema
         for (const [key, validator] of Object.entries(schema)) {
           const result = validator(item[key], `${fieldName}[${i}].${key}`);
@@ -305,7 +305,7 @@ export const validators = {
           }
         }
       }
-      
+
       return true;
     },
 };

@@ -5,11 +5,11 @@ import { validators } from "../middlewares/validation.middleware";
 export const questionIdParamSchema = {
   questionId: validators.compose(
     validators.required,
-      validators.string,
-      validators.uuid
-    ),
-  };
-  
+    validators.string,
+    validators.uuid
+  ),
+};
+
 // Update question validation schema
 export const updateQuestionSchema = {
   questionText: validators.compose(
@@ -65,6 +65,5 @@ export const bulkQuestionsSchema = {
     validators.array,
     validators.minLength(1),
     validators.arrayObjects(questionSchema)
-  )
+  ),
 };
-
