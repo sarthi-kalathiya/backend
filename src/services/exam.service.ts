@@ -226,6 +226,7 @@ export const createExam = async (teacherId: string, examData: any) => {
       duration: Number(duration),
       startDate: new Date(startDate),
       endDate: new Date(endDate),
+      isActive: false, // Set to false by default
     },
     include: {
       subject: true,

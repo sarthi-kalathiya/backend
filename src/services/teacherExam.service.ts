@@ -10,7 +10,7 @@ import {
   PrismaStudent,
   BannedStudentInfo,
   PrismaStudentExam,
-  PrismaResult,
+  PrismaResult
 } from "../models/teacherExam.model";
 
 const prisma = new PrismaClient();
@@ -34,6 +34,11 @@ export const assignExamToStudents = async (
 
   if (!exam) {
     throw new Error("Exam not found or unauthorized");
+  }
+
+  // Check if the exam is active
+  if (!exam.isActive) {
+    throw new Error("Cannot assign inactive exam to students");
   }
 
   // Validate that the student IDs exist
