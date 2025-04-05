@@ -605,9 +605,9 @@ export const updateUserProfile = async (
 
   // If teacher, update teacher profile
   if (
-    user.role === UserRole.TEACHER &&
+    existingUser.role === UserRole.TEACHER &&
     profileData.teacherProfile &&
-    user.teacher
+    existingUser.teacher
   ) {
     // Update existing teacher profile
     await prisma.teacher.update({
@@ -622,9 +622,9 @@ export const updateUserProfile = async (
   }
     // If student, update student profile
     if (
-      user.role === UserRole.STUDENT &&
+      existingUser.role === UserRole.STUDENT &&
       profileData.studentProfile &&
-      user.student
+      existingUser.student
     ) {
       await prisma.student.update({
         where: { userId },
