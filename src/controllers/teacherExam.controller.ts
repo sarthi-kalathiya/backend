@@ -400,3 +400,28 @@ export const getExamStudentStatistics = async (req: Request, res: Response) => {
     return warningResponse(res, null, errorMessage, 404);
   }
 };
+
+// Get students eligible for assignment to an exam
+export const getEligibleStudentsForExam = async (req: Request, res: Response) => {
+  try {
+    const examId = req.params.examId;
+    const teacherId = req.user?.teacher?.id;
+
+    if (!teacherId) {
+      return warningResponse(res, null, "Teacher ID not found", 401);
+    }
+
+    const eligibleStudentsData = await teacherExamService.getEligibleStudentsForExam(examId, teacherId);
+
+    return successResponse(
+      res,
+      eligibleStudentsData,
+      `Retrieved ${eligibleStudentsData.eligibleStudents.length} eligible students for exam`
+    );
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    logger.error("Error getting eligible students:", error);
+    return warningResponse(res, null, errorMessage, 404);
+  }
+};

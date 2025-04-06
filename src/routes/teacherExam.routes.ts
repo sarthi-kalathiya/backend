@@ -95,4 +95,12 @@ router.get(
   teacherExamController.getStudentCheatLogs
 );
 
+// Get eligible students for exam assignment
+router.get(
+  "/exams/:examId/eligible-students",
+  authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  teacherExamController.getEligibleStudentsForExam
+);
+
 export default router;

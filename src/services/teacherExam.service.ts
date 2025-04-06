@@ -740,3 +740,86 @@ export const getExamStudentStatistics = async (
     passCount
   };
 };
+
+// Get students eligible for assignment to an exam (enrolled in subject but not assigned to exam)
+export const getEligibleStudentsForExam = async (
+  examId: string,
+  teacherId: string
+) => {
+  // Verify teacher owns the exam
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id: examId,
+      ownerId: teacherId,
+    },
+    include: {
+      subject: true
+    }
+  });
+
+  if (!exam) {
+    throw new Error("Exam not found or unauthorized");
+  }
+
+  // Get all students assigned to the subject
+  const studentsInSubject = await prisma.studentsOnSubjects.findMany({
+    where: {
+      subjectId: exam.subjectId,
+    },
+    include: {
+      student: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (studentsInSubject.length === 0) {
+    return {
+      eligibleStudents: [],
+      subjectName: exam.subject.name,
+      examName: exam.name
+    };
+  }
+
+  // Get all students already assigned to the exam
+  const assignedStudentExams = await prisma.studentExam.findMany({
+    where: {
+      examId,
+      status: { not: "BANNED" }, // Exclude banned students
+    },
+    select: {
+      studentId: true,
+    },
+  });
+
+  const assignedStudentIds = assignedStudentExams.map((se) => se.studentId);
+
+  // Filter out students who are already assigned
+  const eligibleStudents = studentsInSubject.filter(
+    (ss) => !assignedStudentIds.includes(ss.student.id)
+  );
+
+  // Format the response for frontend
+  const formattedStudents = eligibleStudents.map((ss) => ({
+    id: ss.student.id,
+    firstName: ss.student.user.firstName,
+    lastName: ss.student.user.lastName,
+    email: ss.student.user.email,
+    rollNumber: ss.student.rollNumber || "N/A",
+  }));
+
+  return {
+    eligibleStudents: formattedStudents,
+    subjectName: exam.subject.name,
+    examName: exam.name
+  };
+};
