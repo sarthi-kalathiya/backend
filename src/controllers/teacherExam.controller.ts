@@ -277,3 +277,96 @@ export const getBannedStudents = async (req: Request, res: Response) => {
     return warningResponse(res, null, errorMessage, 404);
   }
 };
+
+// Get filtered students assigned to an exam with pagination, search and status filtering
+export const getFilteredStudents = async (req: Request, res: Response) => {
+  try {
+    const examId = req.params.examId;
+    const teacherId = req.user?.teacher?.id;
+    
+    // Parse query parameters
+    const { 
+      page = '1', 
+      limit = '10', 
+      search = '', 
+      status = ''
+    } = req.query;
+    
+    // Convert page and limit to numbers
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    
+    // Validate parameters
+    if (isNaN(pageNum) || pageNum < 1) {
+      return warningResponse(res, null, "Invalid page parameter", 400);
+    }
+    
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return warningResponse(res, null, "Invalid limit parameter (must be between 1-100)", 400);
+    }
+    
+    if (!teacherId) {
+      return warningResponse(res, null, "Teacher ID not found", 401);
+    }
+
+    // Get student statistics to add to the response
+    const statistics = await teacherExamService.getExamStudentStatistics(examId, teacherId);
+    
+    // Get filtered and paginated students
+    const result = await teacherExamService.getFilteredStudents(
+      examId, 
+      teacherId, 
+      {
+        page: pageNum,
+        limit: limitNum,
+        search: search as string,
+        status: status as string
+      }
+    );
+
+    return successResponse(
+      res,
+      {
+        students: result.students,
+        pagination: {
+          total: result.total,
+          page: pageNum,
+          limit: limitNum,
+          totalPages: Math.ceil(result.total / limitNum)
+        },
+        statistics
+      },
+      `Retrieved ${result.students.length} students (page ${pageNum} of ${Math.ceil(result.total / limitNum)})`
+    );
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    logger.error("Error getting filtered students:", error);
+    return warningResponse(res, null, errorMessage, 404);
+  }
+};
+
+// Get student statistics for an exam
+export const getExamStudentStatistics = async (req: Request, res: Response) => {
+  try {
+    const examId = req.params.examId;
+    const teacherId = req.user?.teacher?.id;
+
+    if (!teacherId) {
+      return warningResponse(res, null, "Teacher ID not found", 401);
+    }
+
+    const statistics = await teacherExamService.getExamStudentStatistics(examId, teacherId);
+
+    return successResponse(
+      res,
+      statistics,
+      "Retrieved student statistics for exam"
+    );
+  } catch (error: unknown) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
+    logger.error("Error getting exam student statistics:", error);
+    return warningResponse(res, null, errorMessage, 404);
+  }
+};

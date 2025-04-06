@@ -551,3 +551,192 @@ export const getBannedStudents = async (
   
   return bannedStudents as PrismaStudent[];
 };
+
+// Interface for filtering parameters
+interface FilterOptions {
+  page: number;
+  limit: number;
+  search: string;
+  status: string;
+}
+
+// Interface for filtered result
+interface FilteredResult {
+  students: PrismaStudentExam[];
+  total: number;
+}
+
+// Interface for student statistics
+interface ExamStudentStatistics {
+  totalStudents: number;
+  completedCount: number;
+  inProgressCount: number;
+  notStartedCount: number;
+  bannedCount: number;
+  averageScore: number;
+  passRate: number;
+  passCount: number;
+}
+
+// Get filtered students with pagination, search and filter
+export const getFilteredStudents = async (
+  examId: string,
+  teacherId: string,
+  options: FilterOptions
+): Promise<FilteredResult> => {
+  // Verify teacher owns the exam
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id: examId,
+      ownerId: teacherId,
+    },
+  });
+
+  if (!exam) {
+    throw new Error("Exam not found or unauthorized");
+  }
+
+  // Construct where conditions for filtering
+  const whereConditions: any = { examId };
+
+  // Add status filter if provided
+  if (options.status) {
+    // Map string status to Prisma enum values
+    const statusMap: Record<string, string> = {
+      'Completed': 'COMPLETED',
+      'In Progress': 'IN_PROGRESS',
+      'Not Started': 'NOT_STARTED',
+      'Banned': 'BANNED'
+    };
+    
+    // Use mapped status or uppercase value if not in map
+    const mappedStatus = statusMap[options.status] || options.status.toUpperCase();
+    whereConditions.status = mappedStatus;
+  }
+
+  // Count total matching records before pagination
+  const totalCount = await prisma.studentExam.count({
+    where: whereConditions,
+  });
+
+  // Calculate pagination
+  const skip = (options.page - 1) * options.limit;
+
+  // Query student exams with pagination
+  let studentExams = await prisma.studentExam.findMany({
+    where: whereConditions,
+    include: {
+      student: {
+        include: {
+          user: true,
+        },
+      },
+      result: true,
+    },
+    skip,
+    take: options.limit,
+    orderBy: { 
+      student: { 
+        user: { 
+          firstName: 'asc' 
+        } 
+      } 
+    },
+  });
+
+  // Apply search filter if provided (needs to be done in memory after fetching since Prisma doesn't support OR across relations)
+  if (options.search) {
+    const searchTerm = options.search.toLowerCase();
+    studentExams = studentExams.filter(se => 
+      se.student.user.firstName.toLowerCase().includes(searchTerm) ||
+      se.student.user.lastName.toLowerCase().includes(searchTerm) ||
+      se.student.user.email.toLowerCase().includes(searchTerm) ||
+      (se.student.rollNumber && se.student.rollNumber.toLowerCase().includes(searchTerm))
+    );
+  }
+
+  // Add status text to each studentExam
+  const enrichedStudentExams = studentExams.map(studentExam => ({
+    ...studentExam,
+    statusText: getStudentExamStatusText(studentExam)
+  }));
+
+  logger.info(
+    `Retrieved ${studentExams.length} filtered students for exam ${examId} (page ${options.page})`
+  );
+
+  return {
+    students: enrichedStudentExams,
+    total: totalCount
+  };
+};
+
+// Get student statistics for an exam
+export const getExamStudentStatistics = async (
+  examId: string,
+  teacherId: string
+): Promise<ExamStudentStatistics> => {
+  // Verify teacher owns the exam
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id: examId,
+      ownerId: teacherId,
+    },
+  });
+
+  if (!exam) {
+    throw new Error("Exam not found or unauthorized");
+  }
+
+  // Get all students for the exam to calculate statistics
+  const studentExams = await prisma.studentExam.findMany({
+    where: { examId },
+    include: {
+      result: true,
+    },
+  });
+
+  // Calculate statistics
+  const totalStudents = studentExams.length;
+  const completedExams = studentExams.filter(se => se.status === 'COMPLETED');
+  const inProgressExams = studentExams.filter(se => se.status === 'IN_PROGRESS');
+  const notStartedExams = studentExams.filter(se => se.status === 'NOT_STARTED');
+  const bannedExams = studentExams.filter(se => se.status === 'BANNED');
+  
+  const completedCount = completedExams.length;
+  const inProgressCount = inProgressExams.length;
+  const notStartedCount = notStartedExams.length;
+  const bannedCount = bannedExams.length;
+
+  // Calculate average score and pass rate from completed exams
+  let averageScore = 0;
+  let passCount = 0;
+  let passRate = 0;
+
+  if (completedCount > 0) {
+    // Sum up scores for completed exams
+    const totalScore = completedExams.reduce((sum, se) => {
+      return sum + (se.result?.marks || 0);
+    }, 0);
+    
+    averageScore = Math.round((totalScore / completedCount) * 100) / 100;
+    
+    // Count passed exams
+    passCount = completedExams.filter(se => 
+      (se.result?.marks || 0) >= exam.passingMarks
+    ).length;
+    
+    passRate = Math.round((passCount / completedCount) * 100);
+  }
+
+  return {
+    totalStudents,
+    completedCount,
+    inProgressCount,
+    notStartedCount,
+    bannedCount,
+    averageScore,
+    passRate,
+    passCount
+  };
+};

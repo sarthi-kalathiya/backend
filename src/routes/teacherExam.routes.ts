@@ -27,6 +27,22 @@ router.get(
   teacherExamController.getAssignedStudents
 );
 
+// Get filtered students with pagination
+router.get(
+  "/exams/:examId/students/filtered",
+  authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  teacherExamController.getFilteredStudents
+);
+
+// Get student statistics
+router.get(
+  "/exams/:examId/student-statistics",
+  authenticateTeacher,
+  validateFields(examIdParamSchema, "params"),
+  teacherExamController.getExamStudentStatistics
+);
+
 // Get banned students
 router.get(
   "/exams/:examId/banned-students",
@@ -37,7 +53,7 @@ router.get(
 
 // Toggle student ban status
 router.patch(
-  "/exams/:examId/students/:studentId/ban",
+  "/exams/:examId/students/:studentId/toggle-ban",
   authenticateTeacher,
   validateFields(examIdParamSchema, "params"),
   validateFields(studentIdParamSchema, "params"),
