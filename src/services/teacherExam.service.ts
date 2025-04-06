@@ -1,5 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { logger } from "../utils/logger";
+import { ExamStatus } from "../constants/exam";
+import { getStudentExamStatusText } from "../services/studentExam.service";
 import {
   AssignExamResponse,
   ToggleBanResponse,
@@ -26,9 +28,6 @@ export const assignExamToStudents = async (
     where: {
       id: examId,
       ownerId: teacherId,
-    },
-    include: {
-      bannedStudents: true,
     },
   });
 
@@ -66,7 +65,7 @@ export const assignExamToStudents = async (
     );
   }
 
-  // Check if the exam is valid (question count and total marks match)
+  // Check if exam has already been taken by any student
   if (
     exam.currentQuestionCount !== exam.numQuestions ||
     exam.currentTotalMarks !== exam.totalMarks
@@ -75,35 +74,31 @@ export const assignExamToStudents = async (
   }
 
   // Check if any students are banned
-  const bannedStudentIds = exam.bannedStudents.map(
-    (student: { id: string }) => student.id
-  );
-  const attemptedBannedStudents = studentIds.filter((id: string) =>
-    bannedStudentIds.includes(id)
-  );
-
-  if (attemptedBannedStudents.length > 0) {
-    // Fetch details of banned students for better error information
-    const bannedStudents = await prisma.student.findMany({
-      where: {
-        id: {
-          in: attemptedBannedStudents,
+  const bannedStudentExams = await prisma.studentExam.findMany({
+    where: {
+      examId,
+      studentId: { in: studentIds },
+      status: ExamStatus.BANNED,
+    },
+    include: {
+      student: {
+        include: {
+          user: true,
         },
       },
-      include: {
-        user: true,
-      },
-    });
+    },
+  });
 
+  if (bannedStudentExams.length > 0) {
     // Create info objects for banned students
-    const bannedStudentInfo = bannedStudents.map((student) => ({
-      id: student.id,
-      firstName: student.user.firstName,
-      lastName: student.user.lastName,
-      email: student.user.email,
+    const bannedStudentInfo = bannedStudentExams.map((se) => ({
+      id: se.student.id,
+      firstName: se.student.user.firstName,
+      lastName: se.student.user.lastName,
+      email: se.student.user.email,
     }));
 
-    throw new Error("Cannot assign exam to banned students");
+    throw new Error(`Cannot assign exam to banned students: ${bannedStudentInfo.map(s => s.email).join(', ')}`);
   }
 
   // Get students enrolled in the exam's subject
@@ -134,6 +129,7 @@ export const assignExamToStudents = async (
       studentId: {
         in: validStudentIds,
       },
+      status: { not: ExamStatus.BANNED },
     },
   });
 
@@ -198,11 +194,17 @@ export const getAssignedStudents = async (
       },
     },
   });
+  
+  // Add status text to each studentExam
+  const enrichedStudentExams = studentExams.map(studentExam => ({
+    ...studentExam,
+    statusText: getStudentExamStatusText(studentExam)
+  }));
 
   logger.info(
     `Retrieved ${studentExams.length} students assigned to exam ${examId}`
   );
-  return studentExams;
+  return enrichedStudentExams;
 };
 
 // Ban/unban student from exam
@@ -234,83 +236,68 @@ export const toggleStudentBan = async (
     throw new Error(`Student with ID ${studentId} does not exist`);
   }
 
-  // Check if student is banned
-  const isBanned = await prisma.exam.findFirst({
+  // Check if student has an exam assignment with BANNED status
+  const studentExam = await prisma.studentExam.findFirst({
     where: {
-      id: examId,
-      bannedStudents: {
-        some: {
-          id: studentId,
+      examId,
+      studentId,
+    },
+    include: {
+      student: {
+        include: {
+          user: true,
         },
       },
     },
   });
 
-  if (isBanned) {
-    // Unban student
-    await prisma.exam.update({
-      where: { id: examId },
-      data: {
-        bannedStudents: {
-          disconnect: { id: studentId },
+  // If student has an exam assignment
+  if (studentExam) {
+    // Check if already banned
+    if (studentExam.status === ExamStatus.BANNED) {
+      // Unban by setting status back to NOT_STARTED
+      await prisma.studentExam.update({
+        where: { id: studentExam.id },
+        data: { 
+          status: ExamStatus.NOT_STARTED 
         },
-      },
-    });
-    logger.info(`Unbanned student ${studentId} from exam ${examId}`);
-    return { action: "unbanned" };
-  } else {
-    // Find existing exam assignment
-    const existingAssignment = await prisma.studentExam.findFirst({
-      where: {
-        examId,
-        studentId,
-      },
-      include: {
-        student: {
-          include: {
-            user: true,
-          },
+      });
+      
+      logger.info(`Unbanned student ${studentId} from exam ${examId}`);
+      return { action: "unbanned" };
+    } else if (studentExam.status === ExamStatus.NOT_STARTED) {
+      // Ban by setting status to BANNED
+      await prisma.studentExam.update({
+        where: { id: studentExam.id },
+        data: { 
+          status: ExamStatus.BANNED 
         },
-      },
-    });
-
-    // Ban student
-    await prisma.exam.update({
-      where: { id: examId },
-      data: {
-        bannedStudents: {
-          connect: { id: studentId },
-        },
-      },
-    });
-
-    // If student is already assigned to this exam, remove the assignment
-    if (existingAssignment) {
-      // We can only delete the assignment if the exam hasn't been started or completed
-      if (existingAssignment.status === "NOT_STARTED") {
-        await prisma.studentExam.delete({
-          where: { id: existingAssignment.id },
-        });
-        logger.info(
-          `Banned student ${studentId} (${existingAssignment.student.user.firstName} ${existingAssignment.student.user.lastName}) from exam ${examId} and removed assignment`
-        );
-        return { action: "banned", removedAssignment: true };
-      } else {
-        // If the exam is already in progress or completed, we can't delete it
-        // but we mark it as being banned
-        logger.warn(
-          `Banned student ${studentId} from exam ${examId}, but could not remove assignment because status is ${existingAssignment.status}`
-        );
-        return {
-          action: "banned",
-          removedAssignment: false,
-          reason: `Exam is in "${existingAssignment.status}" status`,
-        };
-      }
-    } else {
+      });
+      
       logger.info(`Banned student ${studentId} from exam ${examId}`);
       return { action: "banned", removedAssignment: false };
+    } else {
+      // Cannot ban students who have already started or completed the exam
+      logger.warn(
+        `Could not ban student ${studentId} from exam ${examId} because status is ${studentExam.status}`
+      );
+      return {
+        action: "failed",
+        reason: `Cannot ban student because exam is in "${studentExam.status}" status`,
+      };
     }
+  } else {
+    // If student doesn't have an exam assignment yet, create one with BANNED status
+    await prisma.studentExam.create({
+      data: {
+        examId,
+        studentId,
+        status: ExamStatus.BANNED,
+      },
+    });
+    
+    logger.info(`Created banned exam assignment for student ${studentId} on exam ${examId}`);
+    return { action: "banned", removedAssignment: false };
   }
 };
 
@@ -534,8 +521,20 @@ export const getBannedStudents = async (
       id: examId,
       ownerId: teacherId,
     },
+  });
+
+  if (!exam) {
+    throw new Error("Exam not found or unauthorized");
+  }
+
+  // Get students with BANNED status for this exam
+  const bannedStudentExams = await prisma.studentExam.findMany({
+    where: {
+      examId,
+      status: ExamStatus.BANNED,
+    },
     include: {
-      bannedStudents: {
+      student: {
         include: {
           user: true,
         },
@@ -543,12 +542,12 @@ export const getBannedStudents = async (
     },
   });
 
-  if (!exam) {
-    throw new Error("Exam not found or unauthorized");
-  }
+  // Extract just the student information
+  const bannedStudents = bannedStudentExams.map(se => se.student);
 
   logger.info(
-    `Retrieved ${exam.bannedStudents.length} banned students for exam ${examId}`
+    `Retrieved ${bannedStudents.length} banned students for exam ${examId}`
   );
-  return exam.bannedStudents as PrismaStudent[];
+  
+  return bannedStudents as PrismaStudent[];
 };

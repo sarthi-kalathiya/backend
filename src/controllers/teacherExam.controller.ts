@@ -118,24 +118,24 @@ export const toggleStudentBan = async (req: Request, res: Response) => {
       return successResponse(res, null, "Student unbanned successfully");
     }
 
-    if (result.removedAssignment) {
+    if (result.action === "banned") {
       return successResponse(
         res,
         result,
-        "Student banned successfully and exam assignment removed"
+        "Student banned successfully"
       );
     }
 
-    if (result.reason) {
+    if (result.action === "failed") {
       return warningResponse(
         res,
         result,
-        "Student banned successfully, but existing exam assignment could not be removed due to its status",
+        result.reason || "Could not ban student due to exam status",
         400
       );
     }
 
-    return successResponse(res, result, "Student banned successfully");
+    return warningResponse(res, result, "Unexpected result from ban operation", 400);
   } catch (error: unknown) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";

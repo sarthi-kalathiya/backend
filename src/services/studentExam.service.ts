@@ -8,6 +8,7 @@ import {
   UnauthorizedError,
   ForbiddenError,
 } from "../utils/errors";
+import { ExamStatus } from "../constants/exam";
 
 // Get all exams for student (with filters for assigned/completed)
 export const getStudentExams = async (studentId: string, status?: string) => {
@@ -38,10 +39,16 @@ export const getStudentExams = async (studentId: string, status?: string) => {
     },
   });
 
+  // Add status text to each student exam
+  const enrichedStudentExams = studentExams.map(studentExam => ({
+    ...studentExam,
+    statusText: getStudentExamStatusText(studentExam)
+  }));
+
   logger.info(
     `Retrieved ${studentExams.length} exams for student ${studentId}`
   );
-  return studentExams;
+  return enrichedStudentExams;
 };
 
 // Get exam details
@@ -102,24 +109,13 @@ export const startExam = async (examId: string, studentId: string) => {
     throw new NotFoundError("Exam not found or not assigned to student");
   }
 
-  // Check if student is banned from this exam
-  const isBanned = await prisma.exam.findFirst({
-    where: {
-      id: examId,
-      bannedStudents: {
-        some: {
-          id: studentId,
-        },
-      },
-    },
-  });
-
-  if (isBanned) {
+  // Check if student is banned (by status)
+  if (studentExam.status === ExamStatus.BANNED) {
     throw new ForbiddenError("You are banned from taking this exam");
   }
 
   // Check if exam has already been started or completed
-  if (studentExam.status !== "NOT_STARTED") {
+  if (studentExam.status !== ExamStatus.NOT_STARTED) {
     throw new BadRequestError(
       `Exam already started or completed: ${studentExam.status}`
     );
@@ -154,7 +150,7 @@ export const startExam = async (examId: string, studentId: string) => {
   const updatedStudentExam = await prisma.studentExam.update({
     where: { id: studentExam.id },
     data: {
-      status: "IN_PROGRESS",
+      status: ExamStatus.IN_PROGRESS,
       startTime: now,
       endTime,
     },
@@ -780,19 +776,8 @@ export const checkBanStatus = async (examId: string, studentId: string) => {
     },
   });
 
-  // Check if student is banned from this exam
-  const isBanned = await prisma.exam.findFirst({
-    where: {
-      id: examId,
-      bannedStudents: {
-        some: {
-          id: studentId,
-        },
-      },
-    },
-  });
-
-  if (isBanned) {
+  // Check if student has BANNED status
+  if (studentExam && studentExam.status === ExamStatus.BANNED) {
     logger.info(`Student ${studentId} is banned from exam ${examId}`);
     return {
       isBanned: true,
@@ -859,15 +844,13 @@ export const getExamReminders = async (studentId: string) => {
       studentExams: {
         some: {
           studentId,
-          status: "NOT_STARTED",
+          status: ExamStatus.NOT_STARTED,
         },
-      },
-      // Ensure student is not banned
-      bannedStudents: {
         none: {
-          id: studentId,
-        },
-      },
+          studentId,
+          status: ExamStatus.BANNED
+        }
+      }
     },
     include: {
       subject: true,
@@ -885,7 +868,7 @@ export const getExamReminders = async (studentId: string) => {
       studentExams: {
         where: {
           studentId,
-          status: "NOT_STARTED",
+          status: ExamStatus.NOT_STARTED,
         },
       },
     },
@@ -926,4 +909,23 @@ export const getExamReminders = async (studentId: string) => {
     reminders,
     todayDate: now.toISOString().split("T")[0],
   };
+};
+
+// Helper function to get student exam status text
+export const getStudentExamStatusText = (studentExam: any): string => {
+  if (!studentExam) return 'Unknown';
+  
+  // Return appropriate text based on status
+  switch(studentExam.status) {
+    case ExamStatus.NOT_STARTED:
+      return 'Not Started';
+    case ExamStatus.IN_PROGRESS:
+      return 'In Progress';
+    case ExamStatus.COMPLETED:
+      return 'Completed';
+    case ExamStatus.BANNED:
+      return 'Banned';
+    default:
+      return 'Unknown';
+  }
 };

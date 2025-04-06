@@ -67,7 +67,6 @@ model Student {
   user            User      @relation(fields: [userId], references: [id])
   subjects        StudentsOnSubjects[]
   studentExams    StudentExam[]
-  bannedFromExams Exam[]    @relation("BannedStudents")
 
   @@map("students")
 }
@@ -136,7 +135,6 @@ model Exam {
   subject       Subject   @relation(fields: [subjectId], references: [id])
   questions     Question[]
   studentExams  StudentExam[]
-  bannedStudents Student[] @relation("BannedStudents")
 
   @@map("exams")
 }
@@ -171,11 +169,19 @@ model Option {
   @@map("options")
 }
 
+// Add enum definition for ExamStatus
+enum ExamStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  BANNED
+}
+
 model StudentExam {
   id            String      @id @default(uuid())
   studentId     String      @map("student_id")
   examId        String      @map("exam_id")
-  status        String      @default("NOT_STARTED") // "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED"
+  status        ExamStatus  @default(NOT_STARTED) // Using enum instead of raw string
   startTime     DateTime?   @map("start_time")
   endTime       DateTime?   @map("end_time")
   submittedAt   DateTime?   @map("submitted_at")

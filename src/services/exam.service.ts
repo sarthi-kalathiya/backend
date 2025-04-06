@@ -1095,10 +1095,7 @@ export const getExamStatusText = (exam: any): string => {
 export const getExamStudentStats = async (examId: string, teacherId: string) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
-    where: { id: examId, ownerId: teacherId },
-    include: {
-      bannedStudents: true
-    }
+    where: { id: examId, ownerId: teacherId }
   });
 
   if (!exam) {
@@ -1107,9 +1104,12 @@ export const getExamStudentStats = async (examId: string, teacherId: string) => 
 
   // Get counts by status in a single efficient query
   const stats = await prisma.$transaction([
-    // Total assigned students
+    // Total assigned students (excluding banned)
     prisma.studentExam.count({
-      where: { examId }
+      where: { 
+        examId,
+        status: { not: ExamStatus.BANNED }
+      }
     }),
     
     // Completed exams
@@ -1134,22 +1134,35 @@ export const getExamStudentStats = async (examId: string, teacherId: string) => 
         examId,
         status: ExamStatus.NOT_STARTED
       }
+    }),
+    
+    // Banned students
+    prisma.studentExam.count({
+      where: { 
+        examId,
+        status: ExamStatus.BANNED
+      }
     })
   ]);
-
-  const bannedCount = exam.bannedStudents.length;
+  
+  // Extract counts and calculate total
+  const notStarted = stats[3];
+  const inProgress = stats[2];
+  const completed = stats[1];
+  const banned = stats[4];
+  const total = stats[0] + banned; // Total includes all non-banned + banned students
   
   // Format the results
   return {
-    total: stats[0],
-    completed: stats[1],
-    inProgress: stats[2],
-    notStarted: stats[3],
-    banned: bannedCount,
+    total: total,
+    completed: completed,
+    inProgress: inProgress,
+    notStarted: notStarted,
+    banned: banned,
     percentages: {
-      completed: stats[0] > 0 ? (stats[1] / stats[0] * 100).toFixed(1) : "0.0",
-      inProgress: stats[0] > 0 ? (stats[2] / stats[0] * 100).toFixed(1) : "0.0", 
-      notStarted: stats[0] > 0 ? (stats[3] / stats[0] * 100).toFixed(1) : "0.0"
+      completed: total > 0 ? (completed / total * 100).toFixed(1) : "0.0",
+      inProgress: total > 0 ? (inProgress / total * 100).toFixed(1) : "0.0", 
+      notStarted: total > 0 ? (notStarted / total * 100).toFixed(1) : "0.0"
     }
   };
 };

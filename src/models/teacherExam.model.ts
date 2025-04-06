@@ -120,7 +120,7 @@ export interface AssignExamResponse {
 }
 
 export interface ToggleBanResponse {
-  action: "banned" | "unbanned";
+  action: "banned" | "unbanned" | "failed";
   removedAssignment?: boolean;
   reason?: string;
 }
