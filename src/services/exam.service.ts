@@ -1091,3 +1091,65 @@ export const getExamStatusText = (exam: any): string => {
     return 'Finished';
   }
 };
+// Get exam student statistics
+export const getExamStudentStats = async (examId: string, teacherId: string) => {
+  // Verify exam exists and teacher is the owner
+  const exam = await prisma.exam.findUnique({
+    where: { id: examId, ownerId: teacherId },
+    include: {
+      bannedStudents: true
+    }
+  });
+
+  if (!exam) {
+    throw new NotFoundError("Exam not found");
+  }
+
+  // Get counts by status in a single efficient query
+  const stats = await prisma.$transaction([
+    // Total assigned students
+    prisma.studentExam.count({
+      where: { examId }
+    }),
+    
+    // Completed exams
+    prisma.studentExam.count({
+      where: { 
+        examId,
+        status: ExamStatus.COMPLETED
+      }
+    }),
+    
+    // In progress exams
+    prisma.studentExam.count({
+      where: { 
+        examId,
+        status: ExamStatus.IN_PROGRESS
+      }
+    }),
+    
+    // Not started exams
+    prisma.studentExam.count({
+      where: { 
+        examId,
+        status: ExamStatus.NOT_STARTED
+      }
+    })
+  ]);
+
+  const bannedCount = exam.bannedStudents.length;
+  
+  // Format the results
+  return {
+    total: stats[0],
+    completed: stats[1],
+    inProgress: stats[2],
+    notStarted: stats[3],
+    banned: bannedCount,
+    percentages: {
+      completed: stats[0] > 0 ? (stats[1] / stats[0] * 100).toFixed(1) : "0.0",
+      inProgress: stats[0] > 0 ? (stats[2] / stats[0] * 100).toFixed(1) : "0.0", 
+      notStarted: stats[0] > 0 ? (stats[3] / stats[0] * 100).toFixed(1) : "0.0"
+    }
+  };
+};

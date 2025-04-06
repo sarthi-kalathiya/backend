@@ -512,3 +512,19 @@ export const addBulkQuestions = async (
     next(error);
   }
 };
+
+export const getExamStudentStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teacherId = req.user!.teacher?.id;
+    const examId = req.params.examId;
+
+    const stats = await examService.getExamStudentStats(examId, teacherId!);
+    return successResponse(res, stats, "Exam student statistics retrieved successfully");
+  } catch (error) {
+    next(error);
+  }
+};
