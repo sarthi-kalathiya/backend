@@ -790,11 +790,10 @@ export const getEligibleStudentsForExam = async (
     };
   }
 
-  // Get all students already assigned to the exam
+  // Get all students already assigned to the exam (including any status)
   const assignedStudentExams = await prisma.studentExam.findMany({
     where: {
       examId,
-      status: { not: "BANNED" }, // Exclude banned students
     },
     select: {
       studentId: true,
@@ -803,7 +802,7 @@ export const getEligibleStudentsForExam = async (
 
   const assignedStudentIds = assignedStudentExams.map((se) => se.studentId);
 
-  // Filter out students who are already assigned
+  // Filter out students who are already assigned (regardless of status)
   const eligibleStudents = studentsInSubject.filter(
     (ss) => !assignedStudentIds.includes(ss.student.id)
   );
