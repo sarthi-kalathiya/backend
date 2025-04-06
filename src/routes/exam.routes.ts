@@ -128,13 +128,4 @@ router.delete(
   examController.deactivateQuestion
 );
 
-// Get exam student statistics
-router.get(
-  "/exams/:examId/student-stats",
-  authenticateTeacher,
-  requireProfileCompletion,
-  validateFields(examIdParamSchema, "params"),
-  examController.getExamStudentStats
-);
-
 export default router;

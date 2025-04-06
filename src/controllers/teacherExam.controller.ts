@@ -16,6 +16,9 @@ import {
   PrismaStudent,
 } from "../models/teacherExam.model";
 import { User } from "../models/user.model";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 // Extend Express Request type with proper types
 declare global {
@@ -356,11 +359,38 @@ export const getExamStudentStatistics = async (req: Request, res: Response) => {
       return warningResponse(res, null, "Teacher ID not found", 401);
     }
 
+    // Get exam details to calculate pass rate
+    const exam = await prisma.exam.findFirst({
+      where: {
+        id: examId,
+        ownerId: teacherId,
+      },
+      select: {
+        passingMarks: true,
+        totalMarks: true
+      }
+    });
+
+    if (!exam) {
+      return warningResponse(res, null, "Exam not found or unauthorized", 404);
+    }
+
     const statistics = await teacherExamService.getExamStudentStatistics(examId, teacherId);
+
+    // Calculate additional statistics for the frontend
+    const enhancedStatistics = {
+      ...statistics,
+      // Convert to integers for frontend display
+      passRate: Math.round(statistics.passRate),
+      averageScore: Number(statistics.averageScore.toFixed(2)), // Format to 2 decimal places
+      // Add additional info needed for the exam details page
+      totalMarks: exam.totalMarks,
+      passingMarks: exam.passingMarks
+    };
 
     return successResponse(
       res,
-      statistics,
+      enhancedStatistics,
       "Retrieved student statistics for exam"
     );
   } catch (error: unknown) {
