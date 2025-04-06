@@ -163,7 +163,6 @@ export const getExamById = async (examId: string, teacherId?: string) => {
       _count: {
         select: {
           studentExams: true,
-          bannedStudents: true,
         },
       },
     },
