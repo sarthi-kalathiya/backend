@@ -148,3 +148,18 @@ export const examFilterSchema = {
     validators.uuid,
   ),
 };
+
+
+// Reorder questions schema
+export const reorderQuestionsSchema = {
+  questionIds: validators.compose(
+    validators.required,
+    validators.array,
+    validators.minLength(1),
+    validators.arrayItems(validators.compose(
+      validators.required,
+      validators.string,
+      validators.uuid
+    ))
+  )
+};

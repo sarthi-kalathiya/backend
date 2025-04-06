@@ -125,3 +125,8 @@ export interface QuestionOptionDto {
 export interface AssignExamDto {
   studentIds: string[];
 }
+
+// DTO for reordering questions
+export interface ReorderQuestionsDto {
+  questionIds: string[]; // Array of questionIds in the new order
+}

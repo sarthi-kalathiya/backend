@@ -11,6 +11,7 @@ import {
   updateExamStatusSchema,
   examIdParamSchema,
   examFilterSchema,
+  reorderQuestionsSchema,
 } from "../validations/exam.validation";
 import {
   questionIdParamSchema,
@@ -126,6 +127,16 @@ router.delete(
   validateFields(examIdParamSchema, "params"),
   validateFields(questionIdParamSchema, "params"),
   examController.deactivateQuestion
+);
+
+// reorder questions
+router.post(
+  "/exams/:examId/reorder-questions",
+  authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(reorderQuestionsSchema),
+  examController.reorderQuestions
 );
 
 export default router;

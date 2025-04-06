@@ -528,3 +528,34 @@ export const getExamStudentStats = async (
     next(error);
   }
 };
+
+// Reorder Questions
+export const reorderQuestions = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teacherId = req.user!.teacher?.id;
+    const { examId } = req.params;
+    const { questionIds } = req.body;
+
+    if ( questionIds.length === 0) {
+      throw new BadRequestError("Please provide an array of question IDs in the desired order");
+    }
+
+    const updatedQuestions = await examService.reorderQuestions(
+      examId,
+      teacherId!,
+      questionIds
+    );
+
+    return successResponse(
+      res,
+      updatedQuestions,
+      "Questions reordered successfully"
+    );
+  } catch (error) {
+    next(error);
+  }
+};

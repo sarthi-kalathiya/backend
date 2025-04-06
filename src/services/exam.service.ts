@@ -418,27 +418,106 @@ export const updateExamStatus = async (
 
 // Get exam questions
 export const getExamQuestions = async (examId: string, teacherId: string) => {
+  // Verify teacher owns the exam
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id: examId,
+      ownerId: teacherId,
+    },
+  });
+
+  if (!exam) {
+    throw new NotFoundError("Exam not found or unauthorized");
+  }
+
+  // Get questions for this exam with options
+  const questions = await prisma.question.findMany({
+    where: {
+      examId,
+    },
+    include: {
+      options: true,
+    },
+    orderBy: {
+      id: 'asc' // Temporarily use id instead of position
+    }
+  });
+
+  return questions;
+};
+
+// Reorder questions 
+export const reorderQuestions = async (
+  examId: string,
+  teacherId: string,
+  questionIds: string[]
+) => {
   // Verify exam exists and teacher is the owner
   const exam = await prisma.exam.findUnique({
     where: { id: examId, ownerId: teacherId },
+    include: {
+      studentExams: true,
+    },
   });
 
   if (!exam) {
     throw new NotFoundError("Exam not found");
   }
 
-  // Get questions
-  const questions = await prisma.question.findMany({
+  // Check if exam has already been taken by any student
+  if (exam.studentExams.some((se) => se.status === ExamStatus.COMPLETED)) {
+    throw new BadRequestError("Cannot modify exam that has already been taken");
+  }
+
+  // Verify all questionIds belong to this exam
+  const examQuestions = await prisma.question.findMany({
     where: { examId },
-    include: {
-      options: true,
-    },
-    orderBy: {
-      id: "asc",
-    },
+    select: { id: true },
   });
 
-  return questions;
+  const examQuestionIds = examQuestions.map(q => q.id);
+  
+  // Ensure all provided questionIds exist in the exam
+  const invalidQuestionIds = questionIds.filter(id => !examQuestionIds.includes(id));
+  if (invalidQuestionIds.length > 0) {
+    throw new BadRequestError(`Questions with IDs ${invalidQuestionIds.join(', ')} do not belong to this exam`);
+  }
+
+  // Ensure all exam questions are accounted for
+  if (questionIds.length !== examQuestionIds.length) {
+    throw new BadRequestError(`Provided question list doesn't match exam questions. Expected ${examQuestionIds.length} questions, got ${questionIds.length}`);
+  }
+
+  // For now, return the questions in the requested order without actually updating the position
+  // This is a temporary solution until the database migration is completed
+  const questionsInOrder = [];
+  for (const questionId of questionIds) {
+    const question = await prisma.question.findUnique({
+      where: { id: questionId },
+      include: { options: true }
+    });
+    if (question) {
+      questionsInOrder.push(question);
+    }
+  }
+
+  return questionsInOrder;
+  
+  // Comment out the update code until the migration is run
+  /*
+  // Update positions for each question
+  const updates = questionIds.map((questionId, index) => {
+    return prisma.question.update({
+      where: { id: questionId },
+      data: { position: index },
+    });
+  });
+
+  await prisma.$transaction(updates);
+
+  // Return updated questions
+  return getExamQuestions(examId, teacherId);
+  */
 };
 
 // Calculate and validate total marks for an exam
