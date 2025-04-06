@@ -222,6 +222,9 @@ export const submitExam = async (
             include: {
               options: true,
             },
+            orderBy: {
+              position: 'asc'
+            }
           },
         },
       },
@@ -355,6 +358,9 @@ export const getExamQuestions = async (examId: string, studentId: string) => {
             include: {
               options: true,
             },
+            orderBy: {
+              position: 'asc'
+            }
           },
         },
       },

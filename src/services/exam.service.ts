@@ -439,7 +439,7 @@ export const getExamQuestions = async (examId: string, teacherId: string) => {
       options: true,
     },
     orderBy: {
-      id: 'asc' // Temporarily use id instead of position
+      position: 'asc' // Use position instead of id
     }
   });
 
@@ -488,23 +488,6 @@ export const reorderQuestions = async (
     throw new BadRequestError(`Provided question list doesn't match exam questions. Expected ${examQuestionIds.length} questions, got ${questionIds.length}`);
   }
 
-  // For now, return the questions in the requested order without actually updating the position
-  // This is a temporary solution until the database migration is completed
-  const questionsInOrder = [];
-  for (const questionId of questionIds) {
-    const question = await prisma.question.findUnique({
-      where: { id: questionId },
-      include: { options: true }
-    });
-    if (question) {
-      questionsInOrder.push(question);
-    }
-  }
-
-  return questionsInOrder;
-  
-  // Comment out the update code until the migration is run
-  /*
   // Update positions for each question
   const updates = questionIds.map((questionId, index) => {
     return prisma.question.update({
@@ -517,7 +500,6 @@ export const reorderQuestions = async (
 
   // Return updated questions
   return getExamQuestions(examId, teacherId);
-  */
 };
 
 // Calculate and validate total marks for an exam
@@ -628,6 +610,15 @@ export const addQuestion = async (
 
   // Create question with options in a transaction
   const result = await prisma.$transaction(async (tx) => {
+    // Get the current max position for proper ordering
+    const maxPositionResult = await tx.question.findFirst({
+      where: { examId },
+      orderBy: { position: 'desc' },
+      select: { position: true }
+    });
+    
+    const nextPosition = maxPositionResult ? maxPositionResult.position + 1 : 0;
+    
     // Create the question first
     const question = await tx.question.create({
       data: {
@@ -637,6 +628,7 @@ export const addQuestion = async (
         images: hasImage ? images : [],
         marks: newQuestionMarks,
         negativeMarks: Number(negativeMarks) || 0,
+        position: nextPosition,
         // Create a temporary correctOptionId until we create the options
         correctOptionId: "temp",
       },
@@ -1058,6 +1050,15 @@ export const addBulkQuestions = async (
   const createdQuestions = await prisma.$transaction(async (tx) => {
     const createdQuestionsArray = [];
 
+    // Get the current max position for proper ordering
+    const maxPositionResult = await tx.question.findFirst({
+      where: { examId },
+      orderBy: { position: 'desc' },
+      select: { position: true }
+    });
+    
+    let nextPosition = maxPositionResult ? maxPositionResult.position + 1 : 0;
+
     for (const questionData of questionsData) {
       const { questionText, hasImage, images, marks, negativeMarks, options } =
         questionData;
@@ -1071,6 +1072,7 @@ export const addBulkQuestions = async (
           images: hasImage ? images : [],
           marks: Number(marks) || 1,
           negativeMarks: Number(negativeMarks) || 0,
+          position: nextPosition++, // Use and increment position
           correctOptionId: "temp", // Temporary until we create options
         },
       });

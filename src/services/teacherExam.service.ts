@@ -75,7 +75,7 @@ export const assignExamToStudents = async (
 
   // Check if any students are banned
   const bannedStudentExams = await prisma.studentExam.findMany({
-    where: {
+      where: {
       examId,
       studentId: { in: studentIds },
       status: ExamStatus.BANNED,
@@ -86,8 +86,8 @@ export const assignExamToStudents = async (
           user: true,
         },
       },
-    },
-  });
+      },
+    });
 
   if (bannedStudentExams.length > 0) {
     // Create info objects for banned students
@@ -238,18 +238,18 @@ export const toggleStudentBan = async (
 
   // Check if student has an exam assignment with BANNED status
   const studentExam = await prisma.studentExam.findFirst({
-    where: {
-      examId,
-      studentId,
-    },
-    include: {
-      student: {
-        include: {
-          user: true,
+      where: {
+        examId,
+        studentId,
+      },
+      include: {
+        student: {
+          include: {
+            user: true,
+          },
         },
       },
-    },
-  });
+    });
 
   // If student has an exam assignment
   if (studentExam) {
@@ -258,7 +258,7 @@ export const toggleStudentBan = async (
       // Unban by setting status back to NOT_STARTED
       await prisma.studentExam.update({
         where: { id: studentExam.id },
-        data: { 
+      data: {
           status: ExamStatus.NOT_STARTED 
         },
       });
@@ -271,9 +271,9 @@ export const toggleStudentBan = async (
         where: { id: studentExam.id },
         data: { 
           status: ExamStatus.BANNED 
-        },
-      });
-      
+      },
+    });
+
       logger.info(`Banned student ${studentId} from exam ${examId}`);
       return { action: "banned", removedAssignment: false };
     } else {
