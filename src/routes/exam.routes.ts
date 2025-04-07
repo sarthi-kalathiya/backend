@@ -88,6 +88,16 @@ router.get(
   examController.getExamQuestions
 );
 
+// get question by id
+router.get(
+  "/exams/:examId/questions/:questionId",
+  authenticateTeacher,
+  requireProfileCompletion,
+  validateFields(examIdParamSchema, "params"),
+  validateFields(questionIdParamSchema, "params"),
+  examController.getQuestionById
+);
+
 // add question
 router.post(
   "/exams/:examId/question",

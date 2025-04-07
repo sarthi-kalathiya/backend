@@ -27,11 +27,11 @@ export const updateQuestionSchema = {
   ),
   negativeMarks: validators.compose(validators.number, validators.min(0)),
   options: validators.compose(validators.required, validators.array),
-  correctOptionIndex: validators.compose(
-    validators.required,
-    validators.number,
-    validators.min(0)
-  ),
+  // correctOptionIndex: validators.compose(
+  //   validators.required,
+  //   validators.number,
+  //   validators.min(0)
+  // ),
 };
 
 // Question creation validation schema
@@ -51,11 +51,11 @@ export const questionSchema = {
   ),
   negativeMarks: validators.compose(validators.number, validators.min(0)),
   options: validators.compose(validators.required, validators.array),
-  correctOptionIndex: validators.compose(
-    validators.required,
-    validators.number,
-    validators.min(0)
-  ),
+  // correctOptionIndex: validators.compose(
+  //   validators.required,
+  //   validators.number,
+  //   validators.min(0)
+  // ),
 };
 
 // Bulk questions validation schema

@@ -446,6 +446,38 @@ export const getExamQuestions = async (examId: string, teacherId: string) => {
   return questions;
 };
 
+// Get a specific question by ID
+export const getQuestionById = async (examId: string, questionId: string, teacherId: string) => {
+  // Verify teacher owns the exam
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id: examId,
+      ownerId: teacherId,
+    },
+  });
+
+  if (!exam) {
+    throw new NotFoundError("Exam not found or unauthorized");
+  }
+
+  // Get the specific question with its options
+  const question = await prisma.question.findFirst({
+    where: {
+      id: questionId,
+      examId,
+    },
+    include: {
+      options: true,
+    },
+  });
+
+  if (!question) {
+    throw new NotFoundError("Question not found");
+  }
+
+  return question;
+};
+
 // Reorder questions 
 export const reorderQuestions = async (
   examId: string,

@@ -212,6 +212,26 @@ export const getExamQuestions = async (
   }
 };
 
+export const getQuestionById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const teacherId = req.user!.teacher?.id;
+    const { examId, questionId } = req.params;
+
+    const question = await examService.getQuestionById(
+      examId,
+      questionId,
+      teacherId!
+    );
+    return successResponse(res, question, "Question retrieved successfully");
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const addQuestion = async (
   req: Request,
   res: Response,
